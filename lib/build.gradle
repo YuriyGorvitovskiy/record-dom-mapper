@@ -25,6 +25,7 @@ dependencies {
 }
 
 testing {
+    //noinspection GroovyAssignabilityCheck
     suites {
         // Configure the built-in test suite
         test {
