@@ -1,182 +1,274 @@
-
 # Java Record & XML DOM Mapper
-
 ## Overview
+This project provides a seamless and reusable library for **mapping between Java records** (with **Vavr collections** and **Vavr `Option`**) and **W3C DOM `Document`** objects. The main goal is to use modern Java features (such as **records**, **immutable collections**, and **sealed interfaces**) to simplify XML-based operations while enabling support for **polymorphism**, **optional fields**, and **mixed content** in XML.
+The library relies on **reflection** and **conventions-over-configuration** to dynamically infer mappings between Java records and XML. By avoiding the need for annotations (e.g., JAXB), the library minimizes configuration and instead relies on well-defined conventions for mapping, ensuring a lightweight and intuitive developer experience.
+## Key Features
+- **Record Class Mapping**: Record class names map directly to XML element names.
+- **Primitive Fields as Attributes**: Primitive fields are serialized as attributes in the XML root or child elements.
+- **Polymorphism with User-Defined Sealed Interfaces**: Users define application-specific sealed interfaces, while the library provides XML-specific interfaces (`XmlText`, `XmlCData`, `XmlComment`) for handling mixed content.
+- **Immutable Collections**: Supports serialization of **Vavr collections** such as `List` and `Array`.
+- **Optional Fields**: Fields using `Vavr Option` are supported:
+    - `Option.none()` → No corresponding XML field or attribute is serialized.
+    - `Option.some(value)` → The value is serialized appropriately as an attribute or element.
 
-This project aims to provide a seamless and reusable library for **mapping between Java records** (with **Vavr collections** and **Vavr `Option`**) and **W3C DOM `Document`** objects. The main objective is to simplify XML-based operations by leveraging modern Java features like **records**, **immutable collections**, and **functional programming** (via Vavr), while also enabling robust support for **polymorphic interfaces**.
+- **Mixed XML Content**: Handle intermixing of **text**, **CDATA**, **comments**, and **child elements** seamlessly.
+- **Type-Safety**: Use Java's records and sealed interfaces to maintain a structured and type-safe XML representation.
 
-To make the mapping between Java records and XML intuitive and configurable, **JAXB annotations** will be used to define mappings. This approach ensures a declarative configuration of field mappings for XML, including support for polymorphism, optional fields, and nested collections.
-
-The library facilitates:
-- Converting Java records into W3C Document XML trees and vice versa.
-- Avoiding manual mapping logic by utilizing **JAXB annotations** for configuration.
-- Supporting **immutable collections**, **optional fields** (via Vavr `Option`), and polymorphism for greater flexibility.
-
-It is designed to be **type-safe**, **generic**, and **extensible** to support various record types, providing clear abstractions and minimizing boilerplate.
-
----
-
-## Requirements & Goals (Draft)
-
-The following requirements describe the features and functionality of the library:
-
+## Requirements & Goals
 ### Functional Requirements
 1. **Record to Document Conversion**:
-    - Use JAXB annotations to configure field-level mappings (e.g., customize element names, attribute bindings, etc.).
-    - Dynamically generate a `Document` object from a record by respecting the JAXB mappings.
-    - Serialize polymorphic interfaces so that collections of elements can handle different record implementations.
+    - Dynamically map a Java record to a W3C DOM XML `Document`.
+    - The record class name becomes the root element.
+    - Primitive fields are serialized as attributes, and collections or complex types as nested elements.
+    - Serialize polymorphic fields (e.g., `Seq` of a sealed interface) as child elements derived from their implementations.
+    - Mixed content in XML (text, CDATA, comments, and elements) is supported.
 
 2. **Document to Record Conversion**:
-    - Use JAXB annotations to reconstruct Java records from XML.
-    - Enable records with nested, annotated fields or collections to map correctly to XML elements.
-    - Handle **polymorphic collections** by supporting records implementing a parent interface.
-    - Incorporate **optional fields** using **Vavr `Option`** without resorting to null values.
+    - Reconstruct a Java record from an XML `Document`, respecting data types like Vavr `Option` and `Seq`.
+    - Dynamically handle fields with polymorphism or mixed content.
 
-3. **Support for JAXB Customization**:
-    - Allow fine-grained control of mappings using JAXB annotations like:
-        - `@XmlElement`
-        - `@XmlAttribute`
-        - `@XmlRootElement`
-        - `@XmlAccessorType`
-        - `@XmlSeeAlso` (for polymorphic type resolution).
-    - Flexible handling of optional fields that appear or are omitted in XML.
+3. **Extensible Node Content Modeling**:
+    - Support distinguishing between `Text`, `CDATA`, and `Comment` nodes through library-provided interfaces.
+    - Allow users to define their own sealed interface hierarchy and integrate with the library.
 
-4. **Optional Fields with Vavr `Option`**:
-    - Use `io.vavr.control.Option` to explicitly model optional fields in records.
-    - Serialize `Option` fields correctly:
-        - **`None`** fields should result in no corresponding XML element.
-        - **`Some`** fields should serialize their value as a proper XML element or attribute.
+4. **Minimal Configuration**:
+    - No annotations required, relying on conventions-over-configuration for mappings.
 
-5. **Support for Vavr Collections**:
-    - Serialize **Vavr immutable collections** (e.g., `io.vavr.collection.List`, `io.vavr.collection.Map`) into an XML-compatible format during conversion.
-    - Reconstruct these collections from XML when converting back to records.
+5. **Generic Support for Vavr Collections**:
+    - Serialize Vavr collections (e.g., `Seq`) into XML-compatible formats.
+    - Support polymorphic collections holding subclasses of a sealed interface.
 
 6. **Type-Safety and Generality**:
-    - Provide generic methods/interfaces that work with any record type.
-    - Use functional programming paradigms to minimize boilerplate.
+    - Ensure operations comply with the immutability contracts of Vavr collections and Java records.
+    - Dynamically discover field types using reflection for generality.
 
-7. **Minimal Configuration**:
-    - Automatically handle JAXB annotations while allowing user-defined overrides for complex mappings.
-
----
-
-## JAXB Annotations
-
-The library will rely on the following standard JAXB annotations for defining mappings:
-
-1. **@XmlRootElement**: Maps the root of the record to a root XML element.
-2. **@XmlElement**: Maps individual fields of the record to XML elements.
-3. **@XmlAttribute**: Maps fields to attributes of an XML element.
-4. **@XmlAccessorType**: Specifies how fields are accessed (e.g., directly or through getter methods).
-5. **@XmlSeeAlso**: Supports polymorphism by specifying all record subtypes of a given interface.
-6. **@XmlTransient**: Excludes specific fields from XML serialization.
-
----
-
-### Example Annotations with Polymorphism and Optional Fields
-```java
-import javax.xml.bind.annotation.*;
-import io.vavr.collection.List;
-import io.vavr.control.Option;
-
-@XmlRootElement(name = "Person")
-@XmlAccessorType(XmlAccessType.FIELD)
-public record Person(
-    @XmlElement(name = "FullName") String name,
-    @XmlAttribute(name = "personId") int id,
-    @XmlElement(name = "Pets") List<Pet> pets,
-    @XmlElement(name = "Address") Option<Address> address // Optional field
-) {}
-
-@XmlRootElement(name = "Pet")
-@XmlAccessorType(XmlAccessType.FIELD)
-@XmlSeeAlso({Cat.class, Dog.class}) // Supporting polymorphism
-public interface Pet {}
-
-@XmlRootElement(name = "Cat")
-public record Cat(@XmlElement(name = "Nickname") String name) implements Pet {}
-
-@XmlRootElement(name = "Dog")
-public record Dog(@XmlElement(name = "Breed") String breed) implements Pet {}
-
-@XmlRootElement(name = "Address")
-public record Address(
-    @XmlElement(name = "City") String city,
-    @XmlAttribute(name = "PostalCode") String postalCode
-) {}
+## Handling Mixed Content with Specialized Interfaces
+For XML formats containing **mixed content** (text, CDATA, comments, and elements interleaved as children), the library provides specialized non-sealed interfaces to support clear distinctions. These interfaces are:
+1. **XmlText**: Represents nodes containing plain text.
+``` java
+   public interface XmlText {
+       String toXmlString();
+   }
 ```
+1. **XmlCdata**: Represents nodes containing CDATA sections.
+``` java
+   public interface XmlCData {
+       String toXmlString();
+   }
+```
+1. **XmlComment**: Represents nodes containing XML comments.
+``` java
+   public interface XmlComment {
+       String toXmlString();
+   }
+```
+## User-Defined Sealed Interfaces for XML Nodes
+Users define a custom sealed interface that integrates the library-provided interfaces. For example:
+``` java
+public sealed interface Node permits TextNode, CDataSection, CommentNode, ElementNode {}
+```
+### Implementing Text, CDATA, and Comments
+Example implementations of `Node` that also implement the library interfaces:
+1. **Text Node**:
+To recreate TextNode mapper will use canonical constructor with String argument 
+``` java
+   public record TextNode(String content) implements Node, XmlText {
+       @Override
+       public String toXmlString() {
+           return content;
+       }
+   }
+```
+1. **CDATA Section**:
+To recreate CDataSection mapper will use *ofXmlString* method with String argument
+In this example, the `CDataSection` stores binary data encoded as Base64 for efficient XML representation. Non-UTF-8 data or raw binary content can be safely serialized and deserialized using this approach_
+``` java
+   public record CDataSection(byte[] bytes) implements Node, XmlCData {
+       public static CDataSection ofXmlString(String content) {
+            return new CDataSection(Base64.getDecoder().decode(content));
+       }
+       
+       @Override
+       public String toXmlString() {
+           return Base64.getEncoder().encodeToString(bytes);
+       }
+   }
+```
+1. **Comment Node**:
+To recreate CommentNode mapper will use lambda registered by ofXmlString for the CommentNode class
+``` java 
+   public record CommentNode(Instant date) implements Node, XmlComment {
+       @Override
+       public String toXmlString() {
+           return Long.toString(date.toEpochMilli());
+       }
+   }
+   Mapper mapper = Mapper.stock()
+      .ofXmlString(CommentNode.class, s -> new CommentNode(Instant.ofEpochMilli(Long.parseLong(s))));
+```
+1. **Child Element**:
+`Child` is modeled as a normal `ElementNode` in the `Parent` hierarchy
+``` java
+   public record Child(String name, Option<Integer> age) implements Node {}
+```
+1. **Parent Element**:
+The library preserves the order of all node types (text, CDATA, comments, and elements) in mixed content, ensuring parity between the input and output XML_
+``` java
+   public record Parent(String organization, Seq<Node> age) {}
+```
+### Example Parent with Mixed Content
+For XML like:
+``` xml
+<Parent organization="Acme">
+    Text before child
+    <Child name="foo" age="12" />
+    <![CDATA[Some base64 encoded content]]>
+    <!-- This is a comment -->
+    Further text content
+</Parent>
+```
+The equivalent Java representation:
+``` java
+Parent parent = new Parent("Acme", 
+   List.of(
+      new TextNode("Text before child"),
+      new ElementNode("Child", "foo", List.empty()),
+      new CDataSection(some.toByteArray()),
+      new CommentNode("This is a comment"),
+      new TextNode("Further text content")));
+```
+## Conventions for Mapping
+**Note on Canonical Constructors**: All records must have constructors that match the declared fields in both order. If the canonical constructor is invalid, deserialization will fail.
+### Record Class Name Mapped to Root Element
+Each record maps to a corresponding XML element (root or nested). Example:
+``` java
+public record Person(String name, int age) {}
+```
+Serializes as:
+``` xml
+<Person name="John" age="25" />
+```
+### Collections with Polymorphism
+Immutable collections (`Seq`) using sealed interfaces serialize as child elements. Example:
+``` java
+public sealed interface Vehicle permits Car, Truck {}
+public record Car(String make) implements Vehicle {}
+public record Truck(String model) implements Vehicle {}
+public record Fleet(Seq<Vehicle> vehicles) {}
+```
+Serializes as:
+``` xml
+<Fleet>
+    <Car make="Toyota" />
+    <Truck model="Ford" />
+</Fleet>
+```
+Deserialization works by inspecting the XML element name and dynamically mapping it to the appropriate subclass of the sealed interface `Vehicle`. This mapping relies on conventions based on class names.
+### Handling Optional Fields
+For Vavr `Option`:
+- `Option.none()` → Field is omitted in XML.
+- `Option.some(value)` → Field is serialized as an attribute or element.
 
----
+### Handling primitives
+Library provides mapping for the following primitive:
+- String
+- boolean, as true/false strings 
+- numbers primitive and boxed: byte, short, int, long, float, double,
+- data, instant using ISO8601 format with ms precision in UTC timezone
+- enum, mapped to the enum name
+The above mappings can be override by the custom primitive mapping 
 
-## Project Structure
-
-The structure of the project is as follows:
-. 
-├── lib/src/main/java/io/openmapper/recordxml # Main library code 
-├── lib/src/test/java/io/openmapper/recordxml # Unit tests 
-├── lib/build.gradle # Gradle build configuration
-├── gradle/libs.versions.toml # Gradle dependencies versions 
-├── gradle.properties # Gradle properties
-├── settings.gradle # Gradle settings
-└── README.md # Project documentation
-
-
----
+### Handling custom primitives with inheritance
+Implement XmlValue interface, similar to XmlText, XmlCData, XmlComment
+1. **XmlValue**: Represents attribute value
+``` java
+   public interface XmlValue {
+       String toXmlString();
+   }
+```
+1. Implement **XmlValue** to provide mapping, static method *ofXmlString* will be used for deserialization
+``` java
+   public record Fraction(int numerator, int denominator) implements XmlValue {
+   
+       public static Fraction ofXmlString(String xml) {
+            String[] parts = xml.split("/");
+            return new Fraction(Integer.parseInt(parts[0]), Integer.parseInt(parts[1])); 
+       }
+       
+       public String toXmlString() {
+            return Integer.toString(numerator) + "/" + Integer.toString(denominator);
+       }
+   }
+```
+### Handling custom primitives with registration in Mapper
+Note: If a custom mapping for a primitive type is provided, it will override the default library mapping for that type.
+``` java
+ Mapper mapper = Mapper.stock()
+      .ofXmlString(Instant.class, s -> Instant.ofEpochMilli(Long.parseLong(s)))
+      .toXmlString(Instant.class, i -> Long.toString(i.toEpochMilli()));
+```
+### Precedence of factory methods for deserialization 
+This precedence ensures that custom mappings receive priority, allowing developers to handle specialized cases like validation or complex transformations, while the library falls back on conventional methods for most use cases.
+1. First of all mapper search for registered factories with the mapper:
+   - Mapper.ofXmlString(...) - for Primitive, XmlText, XmlCData, XmlComment
+2. If no registered method was found, it will look for the static method with name *ofXmlString* with single String argument
+3. The last resort it will look at the constructor with single string argument.
 
 ## Milestones
+1. **Setup and Configuration**:
+    - Gradle-based setup with dependencies for **Vavr**, **JUnit**, and **W3C DOM**.
 
-The project will be developed in the following stages:
+2. **Core Library Implementation**:
+    - Serialize/deserialize records with support for polymorphism and mixed content.
 
-1. **Setup and Initial Configuration**:
-    - Set up a basic Gradle project targeting **Java 21**.
-    - Include dependencies for **JAXB**, **Vavr**, **JUnit**, and **W3C DOM** utilities.
+3. **Testing**:
+    - Unit tests for handling mixed content, optional fields, and polymorphic collections.
 
-2. **Core Library Development**:
-    - Implement methods to handle JAXB-based `recordToDocument` and `documentToRecord` conversions.
-    - Add support for `Option` fields and handle polymorphic types in collections.
-
-3. **Testing and Documentation**:
-    - Write unit tests to cover polymorphism, optional fields, Vavr collections, and XML-to-record mappings.
-    - Add usage documentation with annotated examples.
-
-4. **Additional Features** *(Future Scope)*:
-    - Support for custom serializers for complex or domain-specific field types.
-    - JSON integration for mixed XML/JSON workflows.
-
----
+4. **Documentation**:
+    - Examples and guides for library usage.
 
 ## Getting Started
-
 ### Prerequisites
 - **Java 21** or newer.
 - Gradle 8.x or newer.
 
-### Building the Project
+### Build and Test
 Clone the repository and run:
-```bash
+``` bash
 ./gradlew clean build
-```
-
-### Testing
-Run all tests using:
-```bash
 ./gradlew test
 ```
 
----
+### Usage example
+`Mapper.stock()` provides a default configuration and that users can extend it with custom mappings as needed
 
-## Future Considerations (Optional Enhancements)
-- Allow deeper customization of mappings including hybrid XML and JSON workflows.
-- Add pluggable serializers for domain-specific requirements.
-- Optimize the handling of deeply nested polymorphic structures.
+``` java
+Mapper mapper = Mapper.stock();
+     // Serialize a record
+     Document xml = mapper.recordToXml(new Person("John", 25));
+     // Deserialize a record
+     Person person = mapper.xmlToRecord(Person.class, xml);
+     // Generate a Schema for the record class
+     Schema schema = mapper.recordToSchema(Person.class);     
+```
 
----
+### Error handling
+The library throws errors in specific scenarios to ensure predictable behavior during serialization and deserialization.
 
-## Related Technologies
-This project combines features from several technologies:
-- **JAXB**: Simplifies mapping between Java objects and XML with annotations.
-- **Vavr**: Provides immutable collections and functional programming paradigms.
-- **W3C DOM**: Provides the foundation for XML manipulation in Java.
-- **Java Records**: Introduced in Java 16+ to represent immutable data types with minimal boilerplate.
+1. **Type Mismatch**:
+   If the field type cannot be mapped to the corresponding XML attribute or child element type, an exception (`MappingException`) is thrown.
 
----
+2. **Missing Required Fields**:
+   Fields without default values or `Vavr Option` wrappers must have corresponding XML elements or attributes. If such a field is missing, a `MappingException` is thrown.
+
+3. **Invalid Factories or Constructors**:
+   If a registered factory method (via `Mapper.ofXmlString`) or a static/canonical constructor fails during instance creation, the exception will propagate as a `MappingException`.
+
+4. **Unregistered Custom Primitives**:
+   If a record field is not a record, not a supported primitive, does not implement a library-provided interface (`XmlValue`, `XmlText`, etc.), and lacks a registered mapping, a `MappingException` will be thrown.
+
+5. `MappingException` is a runtime exception and is not required explicit try catch. Exceptions provide detailed context about the field, type, or record that caused the failure, helping identify and resolve issues quickly.
+
+
+
+
