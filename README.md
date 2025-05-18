@@ -164,6 +164,20 @@ Serializes as:
 </Fleet>
 ```
 Deserialization works by inspecting the XML element name and dynamically mapping it to the appropriate subclass of the sealed interface `Vehicle`. This mapping relies on conventions based on class names.
+### Collections of primitives
+Immutable collections (`Seq`) of primitive type serialize as child elements, with the name of the field mapped to the element and primitive values stored as text. Example:
+``` java
+public record Sizes(Seq<Integer> size){}
+```
+Serializes as:
+``` xml
+<Sizes>
+    <size>12</size>
+    <size>13</size>
+    <size>14</size>
+</Sizes>
+```
+Deserialization works by inspecting the XML element name and dynamically mapping it to the appropriate subclass of the sealed interface `Vehicle`. This mapping relies on conventions based on class names.
 ### Handling Optional Fields
 For Vavr `Option`:
 - `Option.none()` → Field is omitted in XML.
@@ -214,6 +228,58 @@ This precedence ensures that custom mappings receive priority, allowing develope
 2. If no registered method was found, it will look for the static method with name *ofXmlString* with single String argument
 3. The last resort it will look at the constructor with single string argument.
 
+### Using annotations
+In case the compatibility with XML that is not fit into the specified conventions, extra annotations will be available:
+- **@XmlName** for the record that specify tag name different from record name. Example:
+ ``` java
+public record IntAsText(int value) extends XmlText {}
+
+@XmlName("int")
+public record Int(String key, IntAsText value)  {
+}
+```
+Serializes as:
+``` xml
+<int key="first">12</int>
+```
+- **@XmlName** for the field that specify attribute or tag name different from filed name. Example:
+``` java
+public record Value(@XmlName("string-value")String value, double percent)  {}
+```
+Serializes as:
+``` xml
+<Value string-value="first" percent="10.0"/>
+```
+- **@XmlNames** for sequence of sealed interface field or to the sealed interface itself, to provide alternative tag names per permitted record:
+``` java
+public sealed interface Vehicle permits Car, Truck {}
+public record Car(String make) implements Vehicle {}
+public record Truck(String model) implements Vehicle {}
+
+public record Fleet(
+            @XmlNames({
+                  @XmlFor(type=Car.class, name="Fleet.Car"),
+                  @XmlFor(type=Truck.class, name="Fleet.Truck")})
+            Seq<Vehicle> vehicles) {}
+```
+Serializes as:
+``` xml
+<Fleet>
+    <Fleet.Car make="Toyota" />
+    <Fleet.Truck model="Ford" />
+</Fleet>
+```
+- **@XmlDescription** for the record or field to provide description in Schema for the element or attribute. Example:
+``` xml
+
+@XmlDescription("Company information")
+public record Company(
+      @XmlDescription("Company name")
+      String name, 
+      
+      @XmlDescription("Contains the list of vehicles belong to the company")
+      Seq<Vehicle> vehicles) {}
+```
 ## Milestones
 1. **Setup and Configuration**:
     - Gradle-based setup with dependencies for **Vavr**, **JUnit**, and **W3C DOM**.
@@ -267,7 +333,10 @@ The library throws errors in specific scenarios to ensure predictable behavior d
 4. **Unregistered Custom Primitives**:
    If a record field is not a record, not a supported primitive, does not implement a library-provided interface (`XmlValue`, `XmlText`, etc.), and lacks a registered mapping, a `MappingException` will be thrown.
 
-5. `MappingException` is a runtime exception and is not required explicit try catch. Exceptions provide detailed context about the field, type, or record that caused the failure, helping identify and resolve issues quickly.
+5. **Unregistered Sequence Elements**:
+   If record field is a **Seq** of some type that is not a record, known primitive, or sealed interface, or is Object or wildcard, it will throw exception a `MappingException`  
+
+6. `MappingException` is a runtime exception and is not required explicit try catch. Exceptions provide detailed context about the field, type, or record that caused the failure, helping identify and resolve issues quickly.
 
 
 
