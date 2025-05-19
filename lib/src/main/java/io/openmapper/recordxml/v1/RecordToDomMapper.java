@@ -1,4 +1,4 @@
-package io.openmapper.recordxml;
+package io.openmapper.recordxml.v1;
 
 import io.vavr.collection.*;
 import io.vavr.control.Option;

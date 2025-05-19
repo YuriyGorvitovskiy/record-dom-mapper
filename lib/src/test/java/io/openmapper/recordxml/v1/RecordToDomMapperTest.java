@@ -1,4 +1,4 @@
-package io.openmapper.recordxml;
+package io.openmapper.recordxml.v1;
 
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
