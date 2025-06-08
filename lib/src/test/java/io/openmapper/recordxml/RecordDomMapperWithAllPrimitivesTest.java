@@ -40,10 +40,17 @@ public class RecordDomMapperWithAllPrimitivesTest {
      * Test serialization of all supported primitives (including optional fields)
      */
     @Test
-    void recordToXml_allPrimitives() throws Exception {
+    void recordToXml_optionalFieldPresent() throws Exception {
         // Arrange
         AllPrimitivesRecord record = new AllPrimitivesRecord(
-            "example", true, (byte) 1, (short) 10, 42, 1000L, 3.14f, 6.28d,
+            "example",
+            true,
+            (byte) 1,
+            (short) 10,
+            42,
+            1000L,
+            3.14f,
+            6.28d,
             new Date(1697040000000L), // Oct 11, 2023 (example)
             Instant.parse("2023-10-11T10:00:00Z"),
             SomeEnum.ENUM_VALUE_1,
@@ -67,7 +74,7 @@ public class RecordDomMapperWithAllPrimitivesTest {
      * Test deserialization of all supported primitives (including optional fields)
      */
     @Test
-    void xmlToRecord_allPrimitives() throws Exception {
+    void xmlToRecord_optionalFieldPresent() throws Exception {
         // Arrange
         String sourceXml = """
                 <AllPrimitivesRecord stringField="example" booleanField="true" byteField="1"
@@ -96,17 +103,24 @@ public class RecordDomMapperWithAllPrimitivesTest {
     }
 
     /**
-     * Test serialization and deserialization of optional fields when absent.
+     * Test serialization of all supported primitives with optional fields absent.
      */
     @Test
-    void recordToXml_andXmlToRecord_optionalFieldAbsent() throws Exception {
+    void recordToXml_optionalFieldAbsent() throws Exception {
         // Arrange
         AllPrimitivesRecord record = new AllPrimitivesRecord(
-            "example", true, (byte) 1, (short) 10, 42, 1000L, 3.14f, 6.28d,
-            new Date(1697040000000L), // Oct 11, 2023 (example)
-            Instant.parse("2023-10-11T10:00:00Z"),
-            SomeEnum.ENUM_VALUE_2,
-            Option.none() // Optional field is empty
+                "example",
+                true,
+                (byte) 1,
+                (short) 10,
+                42,
+                1000L,
+                3.14f,
+                6.28d,
+                new Date(1697040000000L), // Oct 11, 2023 (example)
+                Instant.parse("2023-10-11T10:00:00Z"),
+                SomeEnum.ENUM_VALUE_2,
+                Option.none() // Optional field is empty
         );
 
         // Act - Serialization
@@ -115,11 +129,24 @@ public class RecordDomMapperWithAllPrimitivesTest {
 
         // Assert - Serialized XML
         String expectedSerializedXml = """
-                <AllPrimitivesRecord booleanField="true" byteField="1" doubleField="6.28" enumField="ENUM_VALUE_2"
-                  floatField="3.14" instantField="2023-10-11T10:00:00Z" intField="42" longField="1000"
-                  shortField="10" stringField="example"
-                  dateField="2023-10-11T00:00:00.000Z" />""";
+            <AllPrimitivesRecord booleanField="true" byteField="1" doubleField="6.28" enumField="ENUM_VALUE_2"
+              floatField="3.14" instantField="2023-10-11T10:00:00Z" intField="42" longField="1000"
+              shortField="10" stringField="example"
+              dateField="2023-10-11T00:00:00.000Z" />""";
         assertEquals(expectedSerializedXml.strip(), serializedXml.strip(), "Serialized XML does not match!");
+    }
+
+    /**
+     * Test deserialization of all supported primitives with optional fields absent.
+     */
+    @Test
+    void xmlToRecord_optionalFieldAbsent() throws Exception {
+        // Arrange
+        String serializedXml = """
+            <AllPrimitivesRecord booleanField="true" byteField="1" doubleField="6.28" enumField="ENUM_VALUE_2"
+              floatField="3.14" instantField="2023-10-11T10:00:00Z" intField="42" longField="1000"
+              shortField="10" stringField="example"
+              dateField="2023-10-11T00:00:00.000Z" />""";
 
         // Act - Deserialization
         Document deserializationDoc = XmlUtils.ofXml(serializedXml);

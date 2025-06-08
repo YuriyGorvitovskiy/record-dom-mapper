@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RecordDomMapperRecordWithPrimitivesTest {
 
-    record Person(String name, int age) {}
+    public record Person(String name, int age) {}
 
     Mapper subject = Mapper.stock();
 
@@ -22,7 +22,7 @@ public class RecordDomMapperRecordWithPrimitivesTest {
 
         // Assert
         String expectedXml = """
-                <Person age="25" name="John" />""";
+                <Person age="25" name="John"/>""";
         assertEquals(expectedXml, result.strip(), "Serialized XML does not match!");
     }
 
@@ -30,7 +30,7 @@ public class RecordDomMapperRecordWithPrimitivesTest {
     void xmlToRecord() throws Exception {
         // Arrange
         String sourceXml = """
-                <Person age="30" name="Jane" />""";
+                <Person age="30" name="Jane"/>""";
 
         Document document = XmlUtils.ofXml(sourceXml); // Utility method to parse XML string into Document
 

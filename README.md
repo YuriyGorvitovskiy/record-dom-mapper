@@ -65,7 +65,7 @@ For XML formats containing **mixed content** (text, CDATA, comments, and element
 ## User-Defined Sealed Interfaces for XML Nodes
 Users define a custom sealed interface that integrates the library-provided interfaces. For example:
 ``` java
-public sealed interface Node permits TextNode, CDataSection, CommentNode, ElementNode {}
+public sealed interface Node permits TextNode, CDataSection, CommentNode, Child {}
 ```
 ### Implementing Text, CDATA, and Comments
 Example implementations of `Node` that also implement the library interfaces:
@@ -95,16 +95,14 @@ In this example, the `CDataSection` stores binary data encoded as Base64 for eff
    }
 ```
 1. **Comment Node**:
-To recreate CommentNode mapper will use lambda registered by ofXmlString for the CommentNode class
+To recreate CommentNode mapper will use lambda registered by ofXmlString and toXmlString for the CommentNode class
 ``` java 
    public record CommentNode(Instant date) implements Node, XmlComment {
-       @Override
-       public String toXmlString() {
-           return Long.toString(date.toEpochMilli());
-       }
    }
+   
    Mapper mapper = Mapper.stock()
-      .ofXmlString(CommentNode.class, s -> new CommentNode(Instant.ofEpochMilli(Long.parseLong(s))));
+      .ofXmlString(CommentNode.class, s -> new CommentNode(Instant.ofEpochMilli(Long.parseLong(s))))
+      .toXmlString(CommentNode.class, c -> Long.toString(c.date().toEpochMilli()));
 ```
 1. **Child Element**:
 `Child` is modeled as a normal `ElementNode` in the `Parent` hierarchy
@@ -224,9 +222,15 @@ Note: If a custom mapping for a primitive type is provided, it will override the
 ### Precedence of factory methods for deserialization 
 This precedence ensures that custom mappings receive priority, allowing developers to handle specialized cases like validation or complex transformations, while the library falls back on conventional methods for most use cases.
 1. First of all mapper search for registered factories with the mapper:
-   - Mapper.ofXmlString(...) - for Primitive, XmlText, XmlCData, XmlComment
+   - Mapper.ofXmlString(...) - for Primitive, XmlValue, XmlText, XmlCData, XmlComment
 2. If no registered method was found, it will look for the static method with name *ofXmlString* with single String argument
 3. The last resort it will look at the constructor with single string argument.
+
+### Precedence of factory methods for serialization
+This precedence ensures that custom mappings receive priority, allowing developers to handle specialized cases like validation or complex transformations, while the library falls back on conventional methods for most use cases.
+1. First of all mapper search for registered factories with the mapper:
+   - Mapper.toXmlString(...) - for Primitive, XmlValue, XmlText, XmlCData, XmlComment
+2. If no registered method was found, it will look for the record method override with name *toXmlString* without arguments
 
 ### Using annotations
 In case the compatibility with XML that is not fit into the specified conventions, extra annotations will be available:
