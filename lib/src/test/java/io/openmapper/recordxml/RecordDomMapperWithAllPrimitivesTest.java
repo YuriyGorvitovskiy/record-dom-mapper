@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RecordDomMapperWithAllPrimitivesTest {
 
     // Example record capturing all supported primitives and fields
-    record AllPrimitivesRecord(
+    public record AllPrimitivesRecord(
         String stringField,
         boolean booleanField,
         byte byteField,
@@ -29,7 +29,7 @@ public class RecordDomMapperWithAllPrimitivesTest {
     ) {}
 
     // Supported Enum for testing
-    enum SomeEnum {
+    public enum SomeEnum {
         ENUM_VALUE_1,
         ENUM_VALUE_2
     }
@@ -51,8 +51,8 @@ public class RecordDomMapperWithAllPrimitivesTest {
             1000L,
             3.14f,
             6.28d,
-            new Date(1697040000000L), // Oct 11, 2023 (example)
-            Instant.parse("2023-10-11T10:00:00Z"),
+            new Date(1697040000123L), // Oct 11, 2023 (example)
+            Instant.parse("2023-10-11T10:00:00.123Z"),
             SomeEnum.ENUM_VALUE_1,
             Option.some("optional-value")
         );
@@ -63,10 +63,7 @@ public class RecordDomMapperWithAllPrimitivesTest {
 
         // Assert
         String expectedXml = """
-                <AllPrimitivesRecord booleanField="true" byteField="1" doubleField="6.28" enumField="ENUM_VALUE_1"
-                  floatField="3.14" instantField="2023-10-11T10:00:00Z" intField="42" longField="1000"
-                  optionalField="optional-value" shortField="10" stringField="example"
-                  dateField="2023-10-11T00:00:00.000Z" />""";
+                <AllPrimitivesRecord booleanField="true" byteField="1" dateField="2023-10-11T16:00:00.123Z" doubleField="6.28" enumField="ENUM_VALUE_1" floatField="3.14" instantField="2023-10-11T10:00:00.123Z" intField="42" longField="1000" optionalField="optional-value" shortField="10" stringField="example"/>""";
         assertEquals(expectedXml.strip(), result.strip(), "Serialized XML does not match!");
     }
 
@@ -77,10 +74,18 @@ public class RecordDomMapperWithAllPrimitivesTest {
     void xmlToRecord_optionalFieldPresent() throws Exception {
         // Arrange
         String sourceXml = """
-                <AllPrimitivesRecord stringField="example" booleanField="true" byteField="1"
-                  shortField="10" intField="42" longField="1000" floatField="3.14" doubleField="6.28"
-                  dateField="2023-10-11T00:00:00.000Z" instantField="2023-10-11T10:00:00Z"
-                  enumField="ENUM_VALUE_1" optionalField="optional-value" />""";
+                <AllPrimitivesRecord booleanField="true"
+                                     byteField="1"
+                                     dateField="2023-10-11T16:00:00.123Z"
+                                     doubleField="6.28"
+                                     enumField="ENUM_VALUE_1"
+                                     floatField="3.14"
+                                     instantField="2023-10-11T10:00:00.123Z"
+                                     intField="42"
+                                     longField="1000"
+                                     optionalField="optional-value"
+                                     shortField="10"
+                                     stringField="example" />""";
 
         Document document = XmlUtils.ofXml(sourceXml);
 
@@ -96,8 +101,8 @@ public class RecordDomMapperWithAllPrimitivesTest {
         assertEquals(1000L, record.longField());
         assertEquals(3.14f, record.floatField());
         assertEquals(6.28, record.doubleField(), 0.001);
-        assertEquals(new Date(1697040000000L), record.dateField());
-        assertEquals(Instant.parse("2023-10-11T10:00:00Z"), record.instantField());
+        assertEquals(new Date(1697040000123L), record.dateField());
+        assertEquals(Instant.parse("2023-10-11T10:00:00.123Z"), record.instantField());
         assertEquals(SomeEnum.ENUM_VALUE_1, record.enumField());
         assertEquals("optional-value", record.optionalField().get());
     }
@@ -117,8 +122,8 @@ public class RecordDomMapperWithAllPrimitivesTest {
                 1000L,
                 3.14f,
                 6.28d,
-                new Date(1697040000000L), // Oct 11, 2023 (example)
-                Instant.parse("2023-10-11T10:00:00Z"),
+                new Date(1697040000123L), // Oct 11, 2023 (example)
+                Instant.parse("2023-10-11T10:00:00.123Z"),
                 SomeEnum.ENUM_VALUE_2,
                 Option.none() // Optional field is empty
         );
@@ -129,10 +134,7 @@ public class RecordDomMapperWithAllPrimitivesTest {
 
         // Assert - Serialized XML
         String expectedSerializedXml = """
-            <AllPrimitivesRecord booleanField="true" byteField="1" doubleField="6.28" enumField="ENUM_VALUE_2"
-              floatField="3.14" instantField="2023-10-11T10:00:00Z" intField="42" longField="1000"
-              shortField="10" stringField="example"
-              dateField="2023-10-11T00:00:00.000Z" />""";
+                <AllPrimitivesRecord booleanField="true" byteField="1" dateField="2023-10-11T16:00:00.123Z" doubleField="6.28" enumField="ENUM_VALUE_2" floatField="3.14" instantField="2023-10-11T10:00:00.123Z" intField="42" longField="1000" shortField="10" stringField="example"/>""";
         assertEquals(expectedSerializedXml.strip(), serializedXml.strip(), "Serialized XML does not match!");
     }
 
@@ -143,10 +145,16 @@ public class RecordDomMapperWithAllPrimitivesTest {
     void xmlToRecord_optionalFieldAbsent() throws Exception {
         // Arrange
         String serializedXml = """
-            <AllPrimitivesRecord booleanField="true" byteField="1" doubleField="6.28" enumField="ENUM_VALUE_2"
-              floatField="3.14" instantField="2023-10-11T10:00:00Z" intField="42" longField="1000"
-              shortField="10" stringField="example"
-              dateField="2023-10-11T00:00:00.000Z" />""";
+            <AllPrimitivesRecord booleanField="true"
+                                 byteField="1"
+                                 doubleField="6.28"
+                                 enumField="ENUM_VALUE_2"
+                                 floatField="3.14"
+                                 instantField="2023-10-11T10:00:00Z"
+                                 intField="42" longField="1000"
+                                 shortField="10"
+                                 stringField="example"
+                                 dateField="2023-10-11T16:00:00.123Z" />""";
 
         // Act - Deserialization
         Document deserializationDoc = XmlUtils.ofXml(serializedXml);
@@ -161,7 +169,7 @@ public class RecordDomMapperWithAllPrimitivesTest {
         assertEquals(1000L, deserializedRecord.longField());
         assertEquals(3.14f, deserializedRecord.floatField());
         assertEquals(6.28, deserializedRecord.doubleField(), 0.001);
-        assertEquals(new Date(1697040000000L), deserializedRecord.dateField());
+        assertEquals(new Date(1697040000123L), deserializedRecord.dateField());
         assertEquals(Instant.parse("2023-10-11T10:00:00Z"), deserializedRecord.instantField());
         assertEquals(SomeEnum.ENUM_VALUE_2, deserializedRecord.enumField());
         assertEquals(Option.none(), deserializedRecord.optionalField());
