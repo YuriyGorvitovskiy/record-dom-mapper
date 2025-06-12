@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RecordDomMapperWithOptionalFieldsTest {
 
-    record Employee(String id, Option<String> department) {}
+    public record Employee(String id, Option<String> department) {}
 
     Mapper subject = Mapper.stock();
 
@@ -24,7 +24,7 @@ public class RecordDomMapperWithOptionalFieldsTest {
 
         // Assert
         String expectedXml = """
-                <Employee department="HR" id="123" />""";
+                <Employee department="HR" id="123"/>""";
         assertEquals(expectedXml, result.strip(), "Serialized XML does not match!");
     }
 
@@ -39,7 +39,7 @@ public class RecordDomMapperWithOptionalFieldsTest {
 
         // Assert
         String expectedXml = """
-                <Employee id="123" />""";
+                <Employee id="123"/>""";
 
         assertEquals(expectedXml, result.strip(), "Serialized XML does not match!");
     }
@@ -51,7 +51,7 @@ public class RecordDomMapperWithOptionalFieldsTest {
         String sourceXml = """
                 <Employee id="123" department="HR" />""";
 
-        Document document = XmlUtils.ofXml(sourceXml); // Utility method to parse XML string into Document
+        Document document = XmlUtils.ofXml(sourceXml);
 
         // Act
         Employee employee = subject.xmlToRecord(Employee.class, document);

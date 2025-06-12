@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class RecordDomMapperWithNestedAndCollectionRecordsTest {
 
     // Example record with nested records and a Seq of records
-    record Address(String street, String city, String zipCode) {}
-    record Person(String name, int age, Address address, Seq<Address> previousAddresses) {}
+    public record Address(String street, String city, String zipCode) {}
+    public record Person(String name, int age, Address address, Seq<Address> previousAddresses) {}
 
     Mapper subject = Mapper.stock();
 
