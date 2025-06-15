@@ -1,13 +1,10 @@
 package io.openmapper.recordxml;
 
-import io.vavr.collection.HashMap;
-import io.vavr.collection.Iterator;
-import io.vavr.collection.Map;
+import io.vavr.collection.*;
 import io.vavr.control.Option;
 import org.w3c.dom.Document;
 
 import io.openmapper.recordxml.util.SoftenEx;
-import org.w3c.dom.Element;
 
 import javax.xml.parsers.DocumentBuilder;
 import java.lang.reflect.ParameterizedType;
@@ -66,43 +63,46 @@ public record Mapper(
     public <T extends Record> Document recordToXml(DocumentBuilder documentBuilder, T record) {
         Document document =  documentBuilder.newDocument();
         Class<?> recordClass = record.getClass();
-        Element root = document.createElement(recordClass.getSimpleName());
+        org.w3c.dom.Element root = recordToXml(recordClass.getSimpleName(), record).toDOM(document);
         document.appendChild(root);
-        for (RecordComponent component: recordClass.getRecordComponents()) {
-            Object value = SoftenEx.call(() -> component.getAccessor().invoke(record));
-
-            Option<ToXmlString<?>> toString =  toXmlString.get(value.getClass());
-            if (!toString.isEmpty()) {
-                @SuppressWarnings({"unchecked", "rawtypes"})
-                String xmlString = ((ToXmlString)toString.get()).toXmlString(value);
-                root.setAttribute(component.getName(), xmlString);
-                continue;
-            }
-            switch(value) {
-                case Enum<?> enumValue -> root.setAttribute(component.getName(), enumValue.name());
-                case Option<?> option -> {
-                    if (option.isDefined()) {
-                        value = option.get();
-                        toString =  toXmlString.get(value.getClass());
-                        if (!toString.isEmpty()) {
-                            @SuppressWarnings({"unchecked", "rawtypes"})
-                            String xmlString = ((ToXmlString)toString.get()).toXmlString(value);
-                            root.setAttribute(component.getName(), xmlString);
-                        } else if (value instanceof Enum<?> enumValue) {
-                            root.setAttribute(component.getName(), enumValue.name());
-                        } else {
-                            throw new IllegalArgumentException("Unsupported type " + value.getClass());
-                        }
-                    }
-                }
-                default -> throw new IllegalArgumentException("Unsupported type " + value.getClass());
-            }
-        }
         return document;
     }
 
+    public <T extends Record> io.openmapper.recordxml.Element recordToXml(String name, T record) {
+        Class<?> recordClass = record.getClass();
+        var attributesAndNodes = Iterator.of(recordClass.getRecordComponents())
+                .flatMap(c-> valueToXml(c.getName(), false, SoftenEx.call(() -> c.getAccessor().invoke(record))))
+                .partition(u->u instanceof Attribute);
+
+        return io.openmapper.recordxml.Element.of(name)
+                .withAttributes(attributesAndNodes._1.map(a->(Attribute)a))
+                .withChildren(attributesAndNodes._2.map(a->(Node)a));
+    }
+
+    private Iterable<Unit> valueToXml(String name, boolean forceNode, Object value) {
+        if (null == value) {
+            return Option.none();
+        }
+        Option<ToXmlString<?>> toString =  toXmlString.get(value.getClass());
+        if (toString.isDefined()) {
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            String xmlString = ((ToXmlString)toString.get()).toXmlString(value);
+            return Option.of(forceNode
+                            ? io.openmapper.recordxml.Element.of(name).withChildren(Text.of(xmlString))
+                            : Attribute.of(name, xmlString));
+        }
+        return switch(value) {
+            case Option<?> o -> o.map(v->valueToXml(name, false, v)).getOrElse(Option.none());
+            case Enum<?> e -> Option.of(Attribute.of(name, e.name()));
+            case Record r -> Option.of(recordToXml(name, r));
+            case Iterable<?> i -> Iterator.ofAll(i).flatMap(v->valueToXml(name, true, v));
+            default ->  throw new IllegalArgumentException("Unsupported type " + value.getClass());
+        };
+    }
+
+
     public <T> T xmlToRecord(Class<T> recordClass, Document document) {
-        Element root = document.getDocumentElement();
+        org.w3c.dom.Element root = document.getDocumentElement();
         if (!root.getNodeName().equals(recordClass.getSimpleName())) {
             throw new IllegalArgumentException("The root element of the document is not " + recordClass.getSimpleName());
         }

@@ -24,9 +24,9 @@ public class RecordDomMapperWithPrimitivesCollectionSerializeTest {
         // Assert
         String expectedXml = """
                 <Sizes>
-                  <size>12</size>
-                  <size>15</size>
-                  <size>20</size>
+                    <size>12</size>
+                    <size>15</size>
+                    <size>20</size>
                 </Sizes>""";
         assertEquals(expectedXml.strip(), result.strip(), "Serialized XML does not match!");
     }

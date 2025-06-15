@@ -35,9 +35,9 @@ public class RecordDomMapperWithNestedAndCollectionRecordsTest {
         // Assert
         String expectedXml = """
                 <Person age="30" name="John Doe">
-                  <address street="123 Main St" city="Springfield" zipCode="12345" />
-                  <address street="456 Elm St" city="Shelbyville" zipCode="67890" />
-                  <address street="789 Oak St" city="Capital City" zipCode="13579" />
+                    <address city="Springfield" street="123 Main St" zipCode="12345"/>
+                    <previousAddresses city="Shelbyville" street="456 Elm St" zipCode="67890"/>
+                    <previousAddresses city="Capital City" street="789 Oak St" zipCode="13579"/>
                 </Person>""";
         assertEquals(expectedXml.strip(), result.strip(), "Serialized XML does not match!");
     }
@@ -50,9 +50,9 @@ public class RecordDomMapperWithNestedAndCollectionRecordsTest {
         // Arrange
         String sourceXml = """
                 <Person age="30" name="John Doe">
-                  <address street="123 Main St" city="Springfield" zipCode="12345" />
-                  <address street="456 Elm St" city="Shelbyville" zipCode="67890" />
-                  <address street="789 Oak St" city="Capital City" zipCode="13579" />
+                  <address street="123 Main St" city="Springfield" zipCode="12345"/>
+                  <previousAddresses street="456 Elm St" city="Shelbyville" zipCode="67890"/>
+                  <previousAddresses street="789 Oak St" city="Capital City" zipCode="13579"/>
                 </Person>""";
 
         Document document = XmlUtils.ofXml(sourceXml);
