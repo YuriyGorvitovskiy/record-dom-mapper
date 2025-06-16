@@ -96,6 +96,7 @@ public record Mapper(
                             : Attribute.of(name, xmlString));
         }
         return switch(value) {
+            case Unit u -> Option.of(u);
             case Option<?> o -> o.map(v->valueToXml(name, ((ParameterizedType)declaredType).getActualTypeArguments()[0], keyClassifier,false,v)).getOrElse(Option.none());
             case Enum<?> e -> Option.of(Attribute.of(name, e.name()));
             case Record r -> Option.of(recordToXml(name, Option.when(!isSameClass(r.getClass(),declaredType), r.getClass().getSimpleName()),keyClassifier,r));
