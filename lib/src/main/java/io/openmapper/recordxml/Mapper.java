@@ -19,6 +19,9 @@ public record Mapper(
         Map<Class<?>, OfXmlString<?>> ofXmlString
 ) {
 
+    static final String TYPE = ":type";
+    static final String KEY = ":key";
+
     static final Mapper STOCK = new Mapper(HashMap.empty(), HashMap.empty())
             .toXmlString(Boolean.class, b->Boolean.toString(b))
             .toXmlString(Byte.class, b->Byte.toString(b))
@@ -63,15 +66,17 @@ public record Mapper(
     public <T extends Record> Document recordToXml(DocumentBuilder documentBuilder, T record) {
         Document document =  documentBuilder.newDocument();
         Class<?> recordClass = record.getClass();
-        org.w3c.dom.Element root = recordToXml(recordClass.getSimpleName(), record).toDOM(document);
+        org.w3c.dom.Element root = recordToXml(recordClass.getSimpleName(), Option.none(), Option.none(), record).toDOM(document);
         document.appendChild(root);
         return document;
     }
 
-    public <T extends Record> io.openmapper.recordxml.Element recordToXml(String name, T record) {
+    public <T extends Record> io.openmapper.recordxml.Element recordToXml(String name, Option<String> typeClassifier, Option<String> keyClassifier, T record) {
         Class<?> recordClass = record.getClass();
-        var attributesAndNodes = Iterator.of(recordClass.getRecordComponents())
-                .flatMap(c-> valueToXml(c.getName(), false, SoftenEx.call(() -> c.getAccessor().invoke(record))))
+        var attributesAndNodes = Array.of(recordClass.getRecordComponents())
+                .flatMap(c-> valueToXml(c.getName(), c.getGenericType(), Option.none(),false, SoftenEx.call(() -> c.getAccessor().invoke(record))))
+                .appendAll(typeClassifier.map(t->Attribute.of(TYPE, t)))
+                .appendAll(keyClassifier.map(k->Attribute.of(KEY, k)))
                 .partition(u->u instanceof Attribute);
 
         return io.openmapper.recordxml.Element.of(name)
@@ -79,25 +84,43 @@ public record Mapper(
                 .withChildren(attributesAndNodes._2.map(a->(Node)a));
     }
 
-    private Iterable<Unit> valueToXml(String name, boolean forceNode, Object value) {
+    private Iterable<Unit> valueToXml(String name, Type declaredType, Option<String> keyClassifier, boolean forceNode, Object value) {
         if (null == value) {
             return Option.none();
         }
         Option<ToXmlString<?>> toString =  toXmlString.get(value.getClass());
         if (toString.isDefined()) {
-            @SuppressWarnings({"unchecked", "rawtypes"})
-            String xmlString = ((ToXmlString)toString.get()).toXmlString(value);
+            String xmlString = toXmlString(toString.get(), value);
             return Option.of(forceNode
                             ? io.openmapper.recordxml.Element.of(name).withChildren(Text.of(xmlString))
                             : Attribute.of(name, xmlString));
         }
         return switch(value) {
-            case Option<?> o -> o.map(v->valueToXml(name, false, v)).getOrElse(Option.none());
+            case Option<?> o -> o.map(v->valueToXml(name, ((ParameterizedType)declaredType).getActualTypeArguments()[0], keyClassifier,false,v)).getOrElse(Option.none());
             case Enum<?> e -> Option.of(Attribute.of(name, e.name()));
-            case Record r -> Option.of(recordToXml(name, r));
-            case Iterable<?> i -> Iterator.ofAll(i).flatMap(v->valueToXml(name, true, v));
+            case Record r -> Option.of(recordToXml(name, Option.when(!isSameClass(r.getClass(),declaredType), r.getClass().getSimpleName()),keyClassifier,r));
+            case Map<?, ?> m -> m.flatMap(v->valueToXml(name, ((ParameterizedType)declaredType).getActualTypeArguments()[1], Option.of(keyClassifier(v._1)),true, v._2));
+            case Iterable<?> i -> Iterator.ofAll(i).flatMap(v->valueToXml(name, ((ParameterizedType)declaredType).getActualTypeArguments()[0], keyClassifier,true, v));
             default ->  throw new IllegalArgumentException("Unsupported type " + value.getClass());
         };
+    }
+
+    String keyClassifier(Object value) {
+        return toXmlString.get(value.getClass())
+                .map(m->toXmlString(m, value))
+                .getOrElseThrow(()-> new RuntimeException("No toXmlString for " + value.getClass()));
+    }
+    String toXmlString(ToXmlString<?> toString, Object value) {
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        String xmlString = ((ToXmlString)toString).toXmlString(value);
+        return xmlString;
+    }
+
+    boolean isSameClass(Class<?> clazz, Type type) {
+        if (type instanceof ParameterizedType parametrizedType1) {
+            type = parametrizedType1.getRawType();
+        }
+        return clazz == type;
     }
 
 
