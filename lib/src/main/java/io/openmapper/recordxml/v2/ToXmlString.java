@@ -1,4 +1,4 @@
-package io.openmapper.recordxml;
+package io.openmapper.recordxml.v2;
 
 @FunctionalInterface
 public interface ToXmlString<T> {

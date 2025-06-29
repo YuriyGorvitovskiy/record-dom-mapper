@@ -1,5 +1,6 @@
 package io.openmapper.recordxml;
 
+import io.openmapper.recordxml.v2.Mapper;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import org.junit.jupiter.api.Test;
@@ -10,8 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class RecordDomMapperWithNestedAndCollectionRecordsTest {
 
     // Example record with nested records and a Seq of records
-    public record Address(String street, String city, String zipCode) {}
-    public record Person(String name, int age, Address address, Seq<Address> previousAddresses) {}
+    public record Address(String street, String city, String zipCode) {
+    }
+
+    public record Person(String name, int age, Address address, Seq<Address> previousAddresses) {
+    }
 
     Mapper subject = Mapper.stock();
 
@@ -23,8 +27,8 @@ public class RecordDomMapperWithNestedAndCollectionRecordsTest {
         // Arrange
         Address currentAddress = new Address("123 Main St", "Springfield", "12345");
         Seq<Address> previousAddresses = List.of(
-            new Address("456 Elm St", "Shelbyville", "67890"),
-            new Address("789 Oak St", "Capital City", "13579")
+                new Address("456 Elm St", "Shelbyville", "67890"),
+                new Address("789 Oak St", "Capital City", "13579")
         );
         Person person = new Person("John Doe", 30, currentAddress, previousAddresses);
 

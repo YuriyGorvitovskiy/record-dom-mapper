@@ -1,5 +1,6 @@
 package io.openmapper.recordxml;
 
+import io.openmapper.recordxml.v2.Mapper;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 
@@ -7,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RecordDomMapperRecordWithPrimitivesTest {
 
-    public record Person(String name, int age) {}
+    public record Person(String name, int age) {
+    }
 
     Mapper subject = Mapper.stock();
 

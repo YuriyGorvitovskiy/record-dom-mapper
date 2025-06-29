@@ -1,5 +1,6 @@
 package io.openmapper.recordxml;
 
+import io.openmapper.recordxml.v2.Mapper;
 import io.vavr.collection.Seq;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
@@ -8,7 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RecordDomMapperWithPrimitivesCollectionSerializeTest {
 
-    record Sizes(Seq<Integer> size) {}
+    record Sizes(Seq<Integer> size) {
+    }
 
     Mapper subject = Mapper.stock();
 

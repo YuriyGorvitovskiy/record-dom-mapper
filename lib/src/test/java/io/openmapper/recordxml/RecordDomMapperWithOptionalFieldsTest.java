@@ -1,5 +1,6 @@
 package io.openmapper.recordxml;
 
+import io.openmapper.recordxml.v2.Mapper;
 import io.vavr.control.Option;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
@@ -9,7 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RecordDomMapperWithOptionalFieldsTest {
 
-    public record Employee(String id, Option<String> department) {}
+    public record Employee(String id, Option<String> department) {
+    }
 
     Mapper subject = Mapper.stock();
 
