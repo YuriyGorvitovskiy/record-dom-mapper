@@ -3,6 +3,7 @@ package io.openmapper.recordxml.xsd;
 import io.openmapper.recordxml.xsd.XsdSimple.Predefined;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
+import io.vavr.collection.Seq;
 
 public record XsdSchema(
         Map<XsdTypeRef, XsdSimple> simple,
@@ -29,6 +30,19 @@ public record XsdSchema(
 
     public XsdSchema add(XsdComplex xsdComplex) {
         return new XsdSchema(simple, complex.put(xsdComplex.ref(), xsdComplex), root);
+    }
+
+    public XsdSchema add(Seq<? extends XsdType> xsdTypes) {
+        var simpleAndComplex = xsdTypes.partition(XsdSimple.class::isInstance);
+        return new XsdSchema(
+                simpleAndComplex._1
+                        .filter(s -> !(s instanceof Predefined))
+                        .toMap(XsdType::ref, s -> (XsdSimple) s)
+                        .merge(simple),
+                simpleAndComplex._2
+                        .toMap(XsdType::ref, s -> (XsdComplex) s)
+                        .merge(complex),
+                root);
     }
 
 }

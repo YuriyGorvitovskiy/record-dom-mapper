@@ -22,7 +22,7 @@ public record XsdBuilder(Config config) {
             Map<Type, MappingType> toProcess = HashMap.ofAll(typeRefs).removeAll(processed);
             processed = processed.addAll(toProcess.keySet());
             schema = toProcess.values()
-                    .foldLeft(schema, (s, m) -> s.add(m.xsdType(resolver)));
+                    .foldLeft(schema, (s, m) -> s.add(m.xsdDeclaredTypes(resolver)));
         }
 
         return schema;

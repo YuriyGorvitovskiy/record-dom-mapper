@@ -1,12 +1,5 @@
 package io.openmapper.recordxml.config;
 
-import java.lang.reflect.Type;
-import java.util.function.Function;
-
-import io.openmapper.recordxml.xsd.XsdComplex.Bound;
-import io.openmapper.recordxml.xsd.XsdType;
-import io.vavr.control.Option;
-
 /*
 SINGLE
 Simple:
@@ -251,9 +244,4 @@ Polymorphic Complex:
  */
 public non-sealed interface ContainerDescriptor extends Descriptor {
 
-    Bound bound(Type declaredType, Function<Type, XsdType> xsdTypeMapper);
-
-    Option<XsdType> parentXsd(Type genericType, Function<Type, XsdType> xsdTypeMapper);
-
-    Option<XsdType> entryXsd(Type genericType, Function<Type, XsdType> xsdTypeMapper);
 }
