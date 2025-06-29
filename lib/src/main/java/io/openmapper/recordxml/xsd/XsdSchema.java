@@ -5,8 +5,8 @@ import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 
 public record XsdSchema(
-        Map<String, XsdSimple> simple,
-        Map<String, XsdComplex> complex,
+        Map<XsdTypeRef, XsdSimple> simple,
+        Map<XsdTypeRef, XsdComplex> complex,
         XsdElement root) {
 
     public static XsdSchema empty(String rootName, XsdTypeRef rootType) {
@@ -28,11 +28,11 @@ public record XsdSchema(
         if (xsdSimple instanceof Predefined) {
             return this;
         }
-        return new XsdSchema(simple.put(xsdSimple.xsdName(), xsdSimple), complex, root);
+        return new XsdSchema(simple.put(xsdSimple.ref(), xsdSimple), complex, root);
     }
 
     public XsdSchema add(XsdComplex xsdComplex) {
-        return new XsdSchema(simple, complex.put(xsdComplex.xsdType(), xsdComplex), root);
+        return new XsdSchema(simple, complex.put(xsdComplex.ref(), xsdComplex), root);
     }
 
 }

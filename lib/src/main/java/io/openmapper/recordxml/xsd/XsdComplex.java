@@ -18,6 +18,10 @@ public record XsdComplex(XsdTypeRef ref,
         return new XsdComplex(xsdTypeRef, Array.empty(), Array.empty(), Option.none(), XsdComplex.Bound.SINGLE);
     }
 
+    public XsdComplex addAttributes(XsdAttribute... attributes) {
+        return addAttributes(Array.of(attributes));
+    }
+
     public XsdComplex addAttributes(Seq<XsdAttribute> attributes) {
         return new XsdComplex(ref, this.attributes.appendAll(attributes), elements, extendsType, bound);
     }
