@@ -22,7 +22,7 @@ public record ConfigImpl() implements Config {
     public MappingType select(Type declaredType) {
         Class<?> rawClass = Java.rawClass(declaredType);
         if (rawClass == String.class) {
-            return buildStringMapping(declaredType);
+            return buildStringMapping();
         }
         if (rawClass.isInterface() && rawClass.isSealed()) {
             return buildInterfaceMapping(declaredType);
@@ -33,7 +33,7 @@ public record ConfigImpl() implements Config {
         throw new IllegalArgumentException("Unsupported type: " + declaredType);
     }
 
-    private MappingType buildStringMapping(Type declaredType) {
+    private MappingType buildStringMapping() {
         return new MappingType() {
             @Override
             public boolean isSimple() {
@@ -93,8 +93,6 @@ public record ConfigImpl() implements Config {
         Seq<RecordComponent> fields = Array.of(rawClass.getRecordComponents());
 
         XsdTypeRef ref = XsdTypeRef.of(rawClass.getSimpleName());
-        XsdComplex type = XsdComplex.of(ref);
-
 
         return new MappingType() {
             @Override
@@ -125,7 +123,7 @@ public record ConfigImpl() implements Config {
                 } else if (simpleAndComplex._2.size() == 1) {
                     FieldMapping fieldMapping = simpleAndComplex._2.get();
                     if (fieldMapping.mapping.isPolymorphic()) {
-                        result = result.extendsType(fieldMapping.mapping.xsdRef());
+                        result = result.mergeType((XsdComplex) fieldMapping.mapping.xsdType(resolver));
                     } else {
                         result = result.addElements(XsdElement.of(fieldMapping.name, fieldMapping.mapping().xsdRef()));
                     }

@@ -83,7 +83,9 @@ public class XsdBuilderTest {
                                         XsdElement.of("DerivedB", derivedBRef)))
                         .add(XsdComplex.of(derivedARef)
                                 .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .extendsType(baseRef))
+                                .addElements(
+                                        XsdElement.of("DerivedA", derivedARef),
+                                        XsdElement.of("DerivedB", derivedBRef)))
                         .add(XsdComplex.of(derivedBRef)
                                 .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
                                 .addElements(

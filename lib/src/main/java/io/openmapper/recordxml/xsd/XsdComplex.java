@@ -2,12 +2,10 @@ package io.openmapper.recordxml.xsd;
 
 import io.vavr.collection.Array;
 import io.vavr.collection.Seq;
-import io.vavr.control.Option;
 
 public record XsdComplex(XsdTypeRef ref,
                          Seq<XsdAttribute> attributes,
                          Seq<XsdElement> elements,
-                         Option<XsdTypeRef> extendsType,
                          Bound bound) implements XsdType {
     public enum Bound {
         PLURAL,
@@ -15,7 +13,7 @@ public record XsdComplex(XsdTypeRef ref,
     }
 
     public static XsdComplex of(XsdTypeRef xsdTypeRef) {
-        return new XsdComplex(xsdTypeRef, Array.empty(), Array.empty(), Option.none(), XsdComplex.Bound.SINGLE);
+        return new XsdComplex(xsdTypeRef, Array.empty(), Array.empty(), XsdComplex.Bound.SINGLE);
     }
 
     public XsdComplex addAttributes(XsdAttribute... attributes) {
@@ -23,7 +21,7 @@ public record XsdComplex(XsdTypeRef ref,
     }
 
     public XsdComplex addAttributes(Seq<XsdAttribute> attributes) {
-        return new XsdComplex(ref, this.attributes.appendAll(attributes), elements, extendsType, bound);
+        return new XsdComplex(ref, this.attributes.appendAll(attributes), elements, bound);
     }
 
     public XsdComplex addElements(XsdElement... elements) {
@@ -31,10 +29,12 @@ public record XsdComplex(XsdTypeRef ref,
     }
 
     public XsdComplex addElements(Seq<XsdElement> elements) {
-        return new XsdComplex(ref, attributes, this.elements.appendAll(elements), extendsType, bound);
+        return new XsdComplex(ref, attributes, this.elements.appendAll(elements), bound);
     }
 
-    public XsdComplex extendsType(XsdTypeRef extendsType) {
-        return new XsdComplex(ref, attributes, elements, Option.of(extendsType), bound);
+    public XsdComplex mergeType(XsdComplex mergeWith) {
+        return new XsdComplex(ref, attributes.appendAll(mergeWith.attributes), elements.appendAll(mergeWith.elements), bound);
     }
+
+
 }
