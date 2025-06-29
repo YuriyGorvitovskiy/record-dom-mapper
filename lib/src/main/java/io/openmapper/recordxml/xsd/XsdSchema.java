@@ -13,14 +13,10 @@ public record XsdSchema(
         return new XsdSchema(HashMap.empty(), HashMap.empty(), XsdElement.of(rootName, rootType));
     }
 
-    public XsdSchema withRoot(XsdElement xsdElement) {
-        return new XsdSchema(simple, complex, xsdElement);
-    }
-
     public XsdSchema add(XsdType xsdType) {
         return switch (xsdType) {
-            case XsdSimple simple -> this.add(simple);
-            case XsdComplex complex -> this.add(complex);
+            case XsdSimple s -> this.add(s);
+            case XsdComplex c -> this.add(c);
         };
     }
 
