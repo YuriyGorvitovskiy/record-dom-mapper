@@ -8,19 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-sealed interface Base permits DerivedA, DerivedB, DerivedC {
-}
-
-record DerivedA(String name, Base recursive) implements Base {
-}
-
-record DerivedB(String name, Map<String, Base> recursiveMap) implements Base {
-}
-
-record DerivedC(String name, Base recursive, Map<String, Base> recursiveMap) implements Base {
-}
-
-
 public class XsdBuilderTest {
 
     @Test
@@ -159,4 +146,3 @@ public class XsdBuilderTest {
                 result);
     }
 }
-

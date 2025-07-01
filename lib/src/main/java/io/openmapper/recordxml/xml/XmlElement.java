@@ -2,11 +2,39 @@ package io.openmapper.recordxml.xml;
 
 
 import io.vavr.collection.*;
-import org.w3c.dom.Document;
+import org.w3c.dom.*;
 
 public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<XmlNode> children) implements XmlNode {
     public static XmlElement of(String name) {
         return new XmlElement(name, LinkedHashMap.empty(), Array.empty());
+    }
+
+    public static XmlElement of(Document document) {
+        return of(document.getDocumentElement());
+    }
+
+    public static XmlElement of(Element element) {
+        NamedNodeMap w3cAttributes = element.getAttributes();
+        List<XmlAttribute> xmlAttributes = List.empty();
+        for (int i = w3cAttributes.getLength() - 1; i >= 0; i--) {
+            Attr attr = (Attr) w3cAttributes.item(i);
+            xmlAttributes = xmlAttributes.prepend(XmlAttribute.of(attr.getName(), attr.getValue()));
+        }
+        NodeList w3cChildren = element.getChildNodes();
+        List<XmlNode> xmlNodes = List.empty();
+        for (int i = w3cChildren.getLength() - 1; i >= 0; i--) {
+            Node w3cNode = w3cChildren.item(i);
+            xmlNodes = switch (w3cNode) {
+                case Element w3cElement -> xmlNodes.prepend(XmlElement.of(w3cElement));
+                case Text w3cText -> xmlNodes.prepend(XmlText.of(w3cText.getData()));
+                default -> xmlNodes;
+            };
+        }
+
+        return new XmlElement(
+                element.getTagName(),
+                xmlAttributes.toLinkedMap(XmlAttribute::name, a -> a),
+                xmlNodes.toArray());
     }
 
     public XmlElement withAttributes(Traversable<XmlAttribute> attributes) {
@@ -47,7 +75,7 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
                 name,
                 attributesAndNodes._1
                         .map(u -> (XmlAttribute) u)
-                        .toMap(a -> a.name(), a -> a),
+                        .toMap(XmlAttribute::name, a -> a),
                 attributesAndNodes._1
                         .map(u -> (XmlNode) u)
                         .toArray());
@@ -59,7 +87,7 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
                 name,
                 attributesAndNodes._1
                         .map(u -> (XmlAttribute) u)
-                        .toMap(a -> a.name(), a -> a)
+                        .toMap(XmlAttribute::name, a -> a)
                         .merge(attributes),
                 children.appendAll(attributesAndNodes._1
                         .map(u -> (XmlNode) u)));
@@ -75,7 +103,8 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
         return children
                 .filter(c -> c instanceof XmlText)
                 .map(c -> ((XmlText) c).value())
-                .mkString()
-                .trim();
+                .map(t -> t.replaceAll("\\s+", " ").trim())
+                .filter(t -> !t.isEmpty())
+                .mkString(" ");
     }
 }
