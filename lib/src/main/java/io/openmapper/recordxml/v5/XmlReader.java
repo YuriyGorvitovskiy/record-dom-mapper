@@ -13,8 +13,12 @@ public record XmlReader(Config config) {
         XsdResolver resolver = t -> typeRefs.computeIfAbsent(t, config::select);
 
         MappingType mapping = typeRefs.computeIfAbsent(clazz, config::select);
-        return mapping.isSimple()
-                ? (T) mapping.ofXml(root.text())
-                : (T) mapping.ofXml(resolver, root, Array.empty());
+        if (mapping.isPolymorphic()) {
+            return (T) mapping.ofXml(resolver, root, root.elements());
+        }
+        if (mapping.isSimple()) {
+            return (T) mapping.ofXml(root.text());
+        }
+        return (T) mapping.ofXml(resolver, null, Array.of(root));
     }
 }

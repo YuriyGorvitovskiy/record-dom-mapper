@@ -4,7 +4,6 @@ import io.openmapper.recordxml.XmlUtils;
 import io.openmapper.recordxml.v5.config.ConfigImpl;
 import io.openmapper.recordxml.xml.XmlElement;
 import io.vavr.collection.HashMap;
-import io.vavr.collection.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,10 +13,6 @@ public class XmlReaderTest {
     @Test
     void simple() throws Exception {
         // Setup
-        record Simple(String name,
-                      Map<String, String> map) {
-        }
-
         String xml = """
                 <Test name="test1">
                     <map Key="one">first</map>
@@ -41,10 +36,6 @@ public class XmlReaderTest {
     @Test
     void recursive() throws Exception {
         // Setup
-        record Simple(String name,
-                      Simple recursive) {
-        }
-
         String xml = """
                 <Test name="test1">
                     <recursive name="test2" >
@@ -55,23 +46,19 @@ public class XmlReaderTest {
         XmlReader subject = new XmlReader(new ConfigImpl());
 
         // Execute
-        Simple result = subject.ofXml(Simple.class, root);
+        Recursive result = subject.ofXml(Recursive.class, root);
 
         // Verify
         assertEquals(
-                new Simple("test1",
-                        new Simple("test2",
-                                new Simple("test3", null))),
+                new Recursive("test1",
+                        new Recursive("test2",
+                                new Recursive("test3", null))),
                 result);
     }
 
     @Test
     void recursiveMap() throws Exception {
         // Setup
-        record Simple(String name,
-                      Map<String, Simple> recursive) {
-        }
-
         String xml = """
                 <Test name="test1">
                     <recursive Key="one" name="test2-1" >
@@ -83,14 +70,14 @@ public class XmlReaderTest {
         XmlReader subject = new XmlReader(new ConfigImpl());
 
         // Execute
-        Simple result = subject.ofXml(Simple.class, root);
+        RecursiveMap result = subject.ofXml(RecursiveMap.class, root);
 
         // Verify
         assertEquals(
-                new Simple("test1",
-                        HashMap.<String, Simple>empty()
-                                .put("one", new Simple("test2-1", HashMap.of("three", new Simple("test3", HashMap.empty()))))
-                                .put("two", new Simple("test2-2", HashMap.empty()))),
+                new RecursiveMap("test1",
+                        HashMap.<String, RecursiveMap>empty()
+                                .put("one", new RecursiveMap("test2-1", HashMap.of("three", new RecursiveMap("test3", HashMap.empty()))))
+                                .put("two", new RecursiveMap("test2-2", HashMap.empty()))),
                 result);
     }
 
@@ -107,7 +94,7 @@ public class XmlReaderTest {
                         </recursive>
                         <recursiveMap>
                             <DerivedB Key="one" name="P1" >
-                                <DerivedA Key="one" name="P1-1" >
+                                <DerivedA Key="one" name="P1-1" />
                                 <DerivedB Key="two" name="P1-2" >
                                     <DerivedA Key="one" name="P1-2-1" />
                                     <DerivedB Key="two" name="P1-2-2" />
@@ -119,10 +106,13 @@ public class XmlReaderTest {
                                     </recursive>
                                     <recursiveMap>
                                         <DerivedA Key="one" name="P1-3-P1" />
-                                    <recursiveMap>
+                                    </recursiveMap>
                                 </DerivedC>
                             </DerivedB>
-                            <DerivedC Key="two" name="P2" />
+                            <DerivedC Key="two" name="P2" >
+                                <recursive/>
+                                <recursiveMap/>
+                            </DerivedC>
                             <DerivedA Key="three" name="P3" >
                                 <DerivedC name="P3-1" />
                             </DerivedA>
@@ -138,7 +128,7 @@ public class XmlReaderTest {
         // Verify
         assertEquals(
                 new DerivedC("1",
-                        new DerivedA("S1", null),
+                        new DerivedA("S1", new DerivedB("S1-1", HashMap.empty())),
                         HashMap.<String, Base>empty()
                                 .put("one", new DerivedB("P1",
                                         HashMap.<String, Base>empty()
@@ -147,7 +137,7 @@ public class XmlReaderTest {
                                                         HashMap.<String, Base>empty()
                                                                 .put("one", new DerivedA("P1-2-1", null))
                                                                 .put("two", new DerivedB("P1-2-2", HashMap.empty()))
-                                                                .put("three", new DerivedC(null, null, HashMap.empty()))))
+                                                                .put("three", new DerivedC(null, null, null))))
                                                 .put("three",
                                                         new DerivedC("P1-3",
                                                                 new DerivedB("P1-3-S1", HashMap.empty()),
@@ -155,7 +145,7 @@ public class XmlReaderTest {
                                                                         .put("one", new DerivedA("P1-3-P1", null))))))
                                 .put("two", new DerivedC("P2", null, HashMap.empty()))
                                 .put("three", new DerivedA("P3",
-                                        new DerivedC("P3-1", null, HashMap.empty())))),
+                                        new DerivedC("P3-1", null, null)))),
                 result);
     }
 }

@@ -3,7 +3,6 @@ package io.openmapper.recordxml.v5;
 import io.openmapper.recordxml.v5.config.ConfigImpl;
 import io.openmapper.recordxml.xsd.*;
 import io.openmapper.recordxml.xsd.XsdSimple.Predefined;
-import io.vavr.collection.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,9 +12,6 @@ public class XsdBuilderTest {
     @Test
     void simple() {
         // Setup
-        record Simple(String name,
-                      Map<String, String> map) {
-        }
         XsdBuilder subject = new XsdBuilder(new ConfigImpl());
 
         // Execute
@@ -39,17 +35,13 @@ public class XsdBuilderTest {
     @Test
     void recursive() {
         // Setup
-        record Simple(String name,
-                      Simple recursive) {
-        }
-
         XsdBuilder subject = new XsdBuilder(new ConfigImpl());
 
         // Execute
-        XsdSchema result = subject.build("Root", Simple.class);
+        XsdSchema result = subject.build("Root", Recursive.class);
 
         // Verify
-        XsdTypeRef simpleRef = XsdTypeRef.of("Simple");
+        XsdTypeRef simpleRef = XsdTypeRef.of("Recursive");
 
         assertEquals(
                 XsdSchema.empty("Root", simpleRef)
@@ -62,18 +54,14 @@ public class XsdBuilderTest {
     @Test
     void recursiveMap() {
         // Setup
-        record Simple(String name,
-                      Map<String, Simple> recursive) {
-        }
-
         XsdBuilder subject = new XsdBuilder(new ConfigImpl());
 
         // Execute
-        XsdSchema result = subject.build("Root", Simple.class);
+        XsdSchema result = subject.build("Root", RecursiveMap.class);
 
         // Verify
-        XsdTypeRef simpleRef = XsdTypeRef.of("Simple");
-        XsdTypeRef simpleMapRef = XsdTypeRef.of("Simple_MappedBy_string");
+        XsdTypeRef simpleRef = XsdTypeRef.of("RecursiveMap");
+        XsdTypeRef simpleMapRef = XsdTypeRef.of("RecursiveMap_MappedBy_string");
 
         assertEquals(
                 XsdSchema.empty("Root", simpleRef)
