@@ -37,17 +37,10 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
                 xmlNodes.toArray());
     }
 
-    public XmlElement withAttributes(Traversable<XmlAttribute> attributes) {
+    public XmlElement addAttribute(String attr, String xml) {
         return new XmlElement(
                 name,
-                attributes.toLinkedMap(XmlAttribute::name, a -> a),
-                children);
-    }
-
-    public XmlElement addAttribute(String name, String xml) {
-        return new XmlElement(
-                name,
-                attributes.put(name, XmlAttribute.of(name, xml)),
+                attributes.put(attr, XmlAttribute.of(name, xml)),
                 children);
     }
 
@@ -69,18 +62,6 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
         return element;
     }
 
-    public XmlElement withUnits(Iterable<? extends XmlUnit> units) {
-        var attributesAndNodes = Iterator.ofAll(units).partition(u -> u instanceof XmlAttribute);
-        return new XmlElement(
-                name,
-                attributesAndNodes._1
-                        .map(u -> (XmlAttribute) u)
-                        .toMap(XmlAttribute::name, a -> a),
-                attributesAndNodes._1
-                        .map(u -> (XmlNode) u)
-                        .toArray());
-    }
-
     public XmlElement addUnits(Iterable<? extends XmlUnit> units) {
         var attributesAndNodes = Iterator.ofAll(units).partition(u -> u instanceof XmlAttribute);
         return new XmlElement(
@@ -89,7 +70,7 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
                         .map(u -> (XmlAttribute) u)
                         .toMap(XmlAttribute::name, a -> a)
                         .merge(attributes),
-                children.appendAll(attributesAndNodes._1
+                children.appendAll(attributesAndNodes._2
                         .map(u -> (XmlNode) u)));
     }
 

@@ -1,9 +1,6 @@
 package io.openmapper.recordxml.v5.config;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.RecordComponent;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.Objects;
 
 import io.openmapper.recordxml.util.Java;
@@ -13,8 +10,11 @@ import io.openmapper.recordxml.v5.MappingType;
 import io.openmapper.recordxml.v5.XsdResolver;
 import io.openmapper.recordxml.xml.XmlAttribute;
 import io.openmapper.recordxml.xml.XmlElement;
+import io.openmapper.recordxml.xml.XmlText;
+import io.openmapper.recordxml.xml.XmlUnit;
 import io.openmapper.recordxml.xsd.*;
 import io.openmapper.recordxml.xsd.XsdSimple.Predefined;
+import io.vavr.Tuple2;
 import io.vavr.collection.Array;
 import io.vavr.collection.Map;
 import io.vavr.collection.Seq;
@@ -22,7 +22,7 @@ import io.vavr.control.Option;
 
 public record ConfigImpl() implements Config {
 
-    record FieldMapping(String name, MappingType mapping) {
+    record FieldMapping(String name, MappingType mapping, Method extract) {
 
     }
 
@@ -78,6 +78,16 @@ public record ConfigImpl() implements Config {
 
             @Override
             public Object ofXml(XsdResolver resolver, XmlElement parent, Seq<XmlElement> elements) {
+                throw new IllegalArgumentException("Should never be called for String Mapping");
+            }
+
+            @Override
+            public String toXml(Object value) {
+                return Objects.toString(value);
+            }
+
+            @Override
+            public Seq<? extends XmlUnit> toXml(XsdResolver resolver, String name, Object value) {
                 throw new IllegalArgumentException("Should never be called for String Mapping");
             }
         };
@@ -147,6 +157,39 @@ public record ConfigImpl() implements Config {
                         e -> valueMapping.ofXml(resolver, parent, Array.of(e)));
             }
 
+            @Override
+            public String toXml(Object value) {
+                throw new IllegalArgumentException("Should never be called for Map Mapping");
+            }
+
+            @Override
+            public Seq<? extends XmlUnit> toXml(XsdResolver resolver, String name, Object value) {
+                if (value == null) {
+                    return Array.empty();
+                }
+                Map<?, ?> mapValue = (Map<?, ?>) value;
+                if (valueMapping.isPolymorphic()) {
+                    return mapValue.flatMap(t ->
+                            valueMapping
+                                    .toXml(resolver, null, t._2)
+                                    .map(u -> u instanceof XmlElement e
+                                            ? e.addAttribute("Key", keyMapping.toXml(t._1))
+                                            : u));
+                }
+                XmlElement entry = XmlElement.of(name);
+                if (valueMapping.isSimple()) {
+                    return mapValue.map(t -> entry
+                            .addAttribute("Key", keyMapping.toXml(t._1))
+                            .withChildren(XmlText.of(valueMapping.toXml(t._2))));
+                }
+                return mapValue.flatMap(t ->
+                        valueMapping.toXml(resolver, name, t._2)
+                                .map(u -> u instanceof XmlElement e
+                                        ? e.addAttribute("Key", keyMapping.toXml(t._1))
+                                        : u));
+
+            }
+
             XsdComplex extensionWithKey(XsdComplex complex, XsdTypeRef base) {
                 return complex
                         .extensionOf(base)
@@ -191,7 +234,7 @@ public record ConfigImpl() implements Config {
 
             @Override
             public XsdComplex xsdType(XsdResolver resolver) {
-                Seq<ConfigImpl.FieldMapping> mappings = fields.map((c) -> new ConfigImpl.FieldMapping(c.getName(), resolver.resolveType(c.getGenericType())));
+                Seq<ConfigImpl.FieldMapping> mappings = fields.map((c) -> new ConfigImpl.FieldMapping(c.getName(), resolver.resolveType(c.getGenericType()), c.getAccessor()));
                 var simpleAndComplex = mappings.partition(m -> m.mapping.isSimple());
                 boolean requiredFieldElement = (simpleAndComplex._2.size() > 1);
                 XsdComplex result = XsdComplex.of(ref)
@@ -218,7 +261,7 @@ public record ConfigImpl() implements Config {
 
             @Override
             public Object ofXml(String text) {
-                throw new IllegalArgumentException("Should never be called for Map Mapping");
+                throw new IllegalArgumentException("Should never be called for Record Mapping");
             }
 
             @Override
@@ -229,7 +272,7 @@ public record ConfigImpl() implements Config {
 
                 XmlElement self = elements.head();
 
-                Seq<ConfigImpl.FieldMapping> mappings = fields.map((c) -> new ConfigImpl.FieldMapping(c.getName(), resolver.resolveType(c.getGenericType())));
+                Seq<ConfigImpl.FieldMapping> mappings = fields.map((c) -> new ConfigImpl.FieldMapping(c.getName(), resolver.resolveType(c.getGenericType()), c.getAccessor()));
                 boolean requiredFieldElement = mappings.count(m -> !m.mapping.isSimple()) > 1;
 
                 Object[] fields = mappings.map(m -> {
@@ -250,6 +293,37 @@ public record ConfigImpl() implements Config {
                 }).toJavaArray();
                 return SoftenEx.call(() -> constructor.newInstance(fields));
             }
+
+            @Override
+            public String toXml(Object value) {
+                throw new IllegalArgumentException("Should never be called for Record Mapping");
+            }
+
+            @Override
+            public Seq<? extends XmlUnit> toXml(XsdResolver resolver, String name, Object value) {
+                if (value == null) {
+                    return Array.empty();
+                }
+
+                Seq<ConfigImpl.FieldMapping> mappings = fields.map((c) -> new ConfigImpl.FieldMapping(c.getName(), resolver.resolveType(c.getGenericType()), c.getAccessor()));
+                boolean requiredFieldElement = mappings.count(m -> !m.mapping.isSimple()) > 1;
+                XmlElement entry = XmlElement.of(name);
+                return Array.of(entry.addUnits(mappings.flatMap(m -> {
+                    if (m.mapping.isSimple()) {
+                        Object val = SoftenEx.call(() -> m.extract.invoke(value));
+                        return val == null
+                                ? Array.empty()
+                                : Array.of(XmlAttribute.of(m.name, m.mapping.toXml(val)));
+                    }
+                    if (requiredFieldElement && m.mapping.isPolymorphic()) {
+                        var units = m.mapping.toXml(resolver, null, SoftenEx.call(() -> m.extract.invoke(value)));
+                        return units.isEmpty()
+                                ? Array.empty()
+                                : Array.of(XmlElement.of(m.name).addUnits(units));
+                    }
+                    return m.mapping.toXml(resolver, m.name, SoftenEx.call(() -> m.extract.invoke(value)));
+                })));
+            }
         };
     }
 
@@ -259,6 +333,7 @@ public record ConfigImpl() implements Config {
 
         Seq<Class<?>> permitted = Java.collectPermittedRecords(rawClass);
         Map<String, Class<?>> typesByName = permitted.toMap(Class::getSimpleName, c -> c);
+        Map<Class<?>, String> namesByType = typesByName.toMap(Tuple2::swap);
 
         return new MappingType() {
             @Override
@@ -291,7 +366,7 @@ public record ConfigImpl() implements Config {
 
             @Override
             public Object ofXml(String text) {
-                throw new IllegalArgumentException("Should never be called for Map Mapping");
+                throw new IllegalArgumentException("Should never be called for Interface Mapping");
             }
 
             @Override
@@ -306,6 +381,25 @@ public record ConfigImpl() implements Config {
                     return mapping.ofXml(self.text());
                 }
                 return mapping.ofXml(resolver, parent, elements);
+            }
+
+            @Override
+            public String toXml(Object value) {
+                throw new IllegalArgumentException("Should never be called for Interface Mapping");
+            }
+
+            @Override
+            public Seq<? extends XmlUnit> toXml(XsdResolver resolver, String _unused, Object value) {
+                if (value == null) {
+                    return Array.empty();
+                }
+                Class<?> clazz = value.getClass();
+                String name = namesByType.get(clazz).get();
+                MappingType mapping = resolver.resolveType(clazz);
+                if (mapping.isSimple()) {
+                    return Array.of(XmlElement.of(name).withChildren(XmlText.of(mapping.toXml(value))));
+                }
+                return mapping.toXml(resolver, name, value);
             }
         };
     }
