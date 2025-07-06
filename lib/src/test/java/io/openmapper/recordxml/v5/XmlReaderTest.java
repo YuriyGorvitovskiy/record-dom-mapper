@@ -19,7 +19,7 @@ public class XmlReaderTest {
                     <map Key="two">second</map>
                 </Test>""";
         XmlElement root = XmlElement.of(XmlUtils.ofXml(xml));
-        XmlReader subject = new XmlReader(new ConfigImpl());
+        XmlReader subject = new XmlReader(ConfigImpl.DEFAULT);
 
         // Execute
         Simple result = subject.ofXml(Simple.class, root);
@@ -43,7 +43,7 @@ public class XmlReaderTest {
                     </recursive>
                 </Test>""";
         XmlElement root = XmlElement.of(XmlUtils.ofXml(xml));
-        XmlReader subject = new XmlReader(new ConfigImpl());
+        XmlReader subject = new XmlReader(ConfigImpl.DEFAULT);
 
         // Execute
         Recursive result = subject.ofXml(Recursive.class, root);
@@ -67,7 +67,7 @@ public class XmlReaderTest {
                     <recursive Key="two" name="test2-2" />
                 </Test>""";
         XmlElement root = XmlElement.of(XmlUtils.ofXml(xml));
-        XmlReader subject = new XmlReader(new ConfigImpl());
+        XmlReader subject = new XmlReader(ConfigImpl.DEFAULT);
 
         // Execute
         RecursiveMap result = subject.ofXml(RecursiveMap.class, root);
@@ -120,7 +120,7 @@ public class XmlReaderTest {
                     </DerivedC>
                 </Test>""";
         XmlElement root = XmlElement.of(XmlUtils.ofXml(xml));
-        XmlReader subject = new XmlReader(new ConfigImpl());
+        XmlReader subject = new XmlReader(ConfigImpl.DEFAULT);
 
         // Execute
         Base result = subject.ofXml(Base.class, root);

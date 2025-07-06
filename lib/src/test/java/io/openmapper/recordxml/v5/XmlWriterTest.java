@@ -19,7 +19,7 @@ public class XmlWriterTest {
                 HashMap.<String, String>empty()
                         .put("one", "first")
                         .put("two", "second"));
-        XmlWriter subject = new XmlWriter(new ConfigImpl());
+        XmlWriter subject = new XmlWriter(ConfigImpl.DEFAULT);
 
         // Execute
         XmlElement result = subject.toXml("Test", source);
@@ -45,7 +45,7 @@ public class XmlWriterTest {
                 new Recursive("test2",
                         new Recursive("test3", null)));
 
-        XmlWriter subject = new XmlWriter(new ConfigImpl());
+        XmlWriter subject = new XmlWriter(ConfigImpl.DEFAULT);
 
         // Execute
         XmlElement result = subject.toXml("Test", source);
@@ -73,7 +73,7 @@ public class XmlWriterTest {
                         .put("one", new RecursiveMap("test2-1", HashMap.of("three", new RecursiveMap("test3", HashMap.empty()))))
                         .put("two", new RecursiveMap("test2-2", HashMap.empty())));
 
-        XmlWriter subject = new XmlWriter(new ConfigImpl());
+        XmlWriter subject = new XmlWriter(ConfigImpl.DEFAULT);
 
         // Execute
         XmlElement result = subject.toXml("Test", source);
@@ -117,7 +117,7 @@ public class XmlWriterTest {
                         .put("three", new DerivedA("P3",
                                 new DerivedC("P3-1", null, null))));
 
-        XmlWriter subject = new XmlWriter(new ConfigImpl());
+        XmlWriter subject = new XmlWriter(ConfigImpl.DEFAULT);
 
         // Execute
         XmlElement result = subject.toXml("Test", source);

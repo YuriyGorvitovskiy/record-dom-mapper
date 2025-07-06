@@ -13,7 +13,7 @@ public record XsdBuilder(Config config) {
 
     public XsdSchema build(String name, Class<?> clazz) {
         java.util.Map<Type, MappingType> typeRefs = new java.util.HashMap<>();
-        XsdResolver resolver = t -> typeRefs.computeIfAbsent(t, config::select);
+        MappingResolver resolver = t -> typeRefs.computeIfAbsent(t, config::select);
         XsdTypeRef rootTypeRef = typeRefs.computeIfAbsent(clazz, config::select).xsdRef();
 
         XsdSchema schema = XsdSchema.empty(name, rootTypeRef);

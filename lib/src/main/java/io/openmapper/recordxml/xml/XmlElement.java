@@ -4,9 +4,13 @@ package io.openmapper.recordxml.xml;
 import io.vavr.collection.*;
 import org.w3c.dom.*;
 
-public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<XmlNode> children) implements XmlNode {
+public record XmlElement(String name, Map<String, String> attributes, Seq<XmlNode> children) implements XmlNode {
     public static XmlElement of(String name) {
         return new XmlElement(name, LinkedHashMap.empty(), Array.empty());
+    }
+
+    public static XmlElement ofText(String name, String text) {
+        return new XmlElement(name, LinkedHashMap.empty(), Array.of(XmlText.of(text)));
     }
 
     public static XmlElement of(Document document) {
@@ -15,10 +19,10 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
 
     public static XmlElement of(Element element) {
         NamedNodeMap w3cAttributes = element.getAttributes();
-        List<XmlAttribute> xmlAttributes = List.empty();
+        Map<String, String> xmlAttributes = LinkedHashMap.empty();
         for (int i = w3cAttributes.getLength() - 1; i >= 0; i--) {
             Attr attr = (Attr) w3cAttributes.item(i);
-            xmlAttributes = xmlAttributes.prepend(XmlAttribute.of(attr.getName(), attr.getValue()));
+            xmlAttributes = xmlAttributes.put(attr.getName(), attr.getValue());
         }
         NodeList w3cChildren = element.getChildNodes();
         List<XmlNode> xmlNodes = List.empty();
@@ -33,14 +37,14 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
 
         return new XmlElement(
                 element.getTagName(),
-                xmlAttributes.toLinkedMap(XmlAttribute::name, a -> a),
+                xmlAttributes,
                 xmlNodes.toArray());
     }
 
     public XmlElement addAttribute(String attr, String xml) {
         return new XmlElement(
                 name,
-                attributes.put(attr, XmlAttribute.of(name, xml)),
+                attributes.put(attr, xml),
                 children);
     }
 
@@ -57,21 +61,9 @@ public record XmlElement(String name, Map<String, XmlAttribute> attributes, Seq<
     @Override
     public org.w3c.dom.Element toDOM(Document document) {
         org.w3c.dom.Element element = document.createElement(name);
-        attributes.forEach((k, v) -> element.setAttribute(k, v.value()));
+        attributes.forEach(element::setAttribute);
         children.forEach(c -> element.appendChild(c.toDOM(document)));
         return element;
-    }
-
-    public XmlElement addUnits(Iterable<? extends XmlUnit> units) {
-        var attributesAndNodes = Iterator.ofAll(units).partition(u -> u instanceof XmlAttribute);
-        return new XmlElement(
-                name,
-                attributesAndNodes._1
-                        .map(u -> (XmlAttribute) u)
-                        .toMap(XmlAttribute::name, a -> a)
-                        .merge(attributes),
-                children.appendAll(attributesAndNodes._2
-                        .map(u -> (XmlNode) u)));
     }
 
     public Seq<XmlElement> elements() {

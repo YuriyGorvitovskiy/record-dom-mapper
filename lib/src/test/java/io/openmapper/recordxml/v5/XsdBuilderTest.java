@@ -12,7 +12,7 @@ public class XsdBuilderTest {
     @Test
     void simple() {
         // Setup
-        XsdBuilder subject = new XsdBuilder(new ConfigImpl());
+        XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
         XsdSchema result = subject.build("Root", Simple.class);
@@ -35,7 +35,7 @@ public class XsdBuilderTest {
     @Test
     void recursive() {
         // Setup
-        XsdBuilder subject = new XsdBuilder(new ConfigImpl());
+        XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
         XsdSchema result = subject.build("Root", Recursive.class);
@@ -54,7 +54,7 @@ public class XsdBuilderTest {
     @Test
     void recursiveMap() {
         // Setup
-        XsdBuilder subject = new XsdBuilder(new ConfigImpl());
+        XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
         XsdSchema result = subject.build("Root", RecursiveMap.class);
@@ -77,7 +77,7 @@ public class XsdBuilderTest {
     @Test
     void polymorphic() {
         // Setup
-        XsdBuilder subject = new XsdBuilder(new ConfigImpl());
+        XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
         XsdSchema result = subject.build("Root", Base.class);

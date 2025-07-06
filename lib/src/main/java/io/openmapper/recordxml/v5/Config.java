@@ -4,4 +4,6 @@ import java.lang.reflect.Type;
 
 public interface Config {
     MappingType select(Type declaredType);
+
+    Mapper mapperFor(Type declaredType);
 }
