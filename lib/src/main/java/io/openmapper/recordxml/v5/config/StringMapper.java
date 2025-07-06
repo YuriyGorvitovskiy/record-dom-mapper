@@ -10,4 +10,9 @@ public record StringMapper() implements SimpleMapper {
     public String toXml(Object value) {
         return Objects.toString(value);
     }
+
+    @Override
+    public Object ofXml(String xml) {
+        return xml;
+    }
 }

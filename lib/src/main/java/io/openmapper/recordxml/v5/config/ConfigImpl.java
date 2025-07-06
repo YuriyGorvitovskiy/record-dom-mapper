@@ -1,7 +1,6 @@
 package io.openmapper.recordxml.v5.config;
 
 import java.lang.reflect.*;
-import java.util.Objects;
 
 import io.openmapper.recordxml.util.Java;
 import io.openmapper.recordxml.util.SoftenEx;
@@ -9,7 +8,6 @@ import io.openmapper.recordxml.v5.Config;
 import io.openmapper.recordxml.v5.Mapper;
 import io.openmapper.recordxml.v5.MappingResolver;
 import io.openmapper.recordxml.v5.MappingType;
-import io.openmapper.recordxml.xml.XmlElement;
 import io.openmapper.recordxml.xsd.*;
 import io.openmapper.recordxml.xsd.XsdSimple.Predefined;
 import io.vavr.Function1;
@@ -17,7 +15,6 @@ import io.vavr.Tuple2;
 import io.vavr.collection.Array;
 import io.vavr.collection.Map;
 import io.vavr.collection.Seq;
-import io.vavr.control.Option;
 
 public record ConfigImpl(Function1<Type, Mapper> memoizedMappers) implements Config {
 
@@ -98,40 +95,6 @@ public record ConfigImpl(Function1<Type, Mapper> memoizedMappers) implements Con
                 return Array.of(xsdType(resolver));
             }
 
-            @Override
-            public Object ofXml(String text) {
-                throw new IllegalArgumentException("Should never be called for Record Mapping");
-            }
-
-            @Override
-            public Object ofXml(MappingResolver resolver, XmlElement parent, Seq<XmlElement> elements) {
-                if (elements.isEmpty()) {
-                    return null;
-                }
-
-                XmlElement self = elements.head();
-
-                Seq<ConfigImpl.FieldMapping> mappings = fields.map((c) -> new ConfigImpl.FieldMapping(c.getName(), resolver.resolveType(c.getGenericType()), c.getAccessor()));
-                boolean requiredFieldElement = mappings.count(m -> !m.mapping.isSimple()) > 1;
-
-                Object[] fields = mappings.map(m -> {
-                    if (m.mapping.isSimple()) {
-                        Option<String> valueOpt = self.attributes().get(m.name);
-                        return valueOpt.map(m.mapping::ofXml).getOrNull();
-                    }
-                    if (!m.mapping.isPolymorphic()) {
-                        Seq<XmlElement> children = self.elements().filter(e -> Objects.equals(e.name(), m.name()));
-                        return m.mapping.ofXml(resolver, self, children);
-                    }
-                    if (requiredFieldElement) {
-                        Option<XmlElement> root = self.elements().find(e -> Objects.equals(e.name(), m.name()));
-                        return root.map(r -> m.mapping.ofXml(resolver, r, r.elements())).getOrNull();
-                    }
-                    return m.mapping.ofXml(resolver, self, self.elements());
-
-                }).toJavaArray();
-                return SoftenEx.call(() -> constructor.newInstance(fields));
-            }
         };
     }
 
@@ -184,15 +147,6 @@ public record ConfigImpl(Function1<Type, Mapper> memoizedMappers) implements Con
                 return Array.of(xsdType(resolver));
             }
 
-            @Override
-            public Object ofXml(String text) {
-                return text;
-            }
-
-            @Override
-            public Object ofXml(MappingResolver resolver, XmlElement parent, Seq<XmlElement> elements) {
-                throw new IllegalArgumentException("Should never be called for String Mapping");
-            }
         };
     }
 
@@ -241,23 +195,6 @@ public record ConfigImpl(Function1<Type, Mapper> memoizedMappers) implements Con
 
                 main = main.addElements(mappedElements);
                 return mappedTypes.prepend(main);
-            }
-
-            @Override
-            public Object ofXml(String text) {
-                throw new IllegalArgumentException("Should never be called for Map Mapping");
-            }
-
-            @Override
-            public Object ofXml(MappingResolver resolver, XmlElement parent, Seq<XmlElement> elements) {
-                if (valueMapping.isSimple()) {
-                    return elements.toMap(
-                            e -> keyMapping.ofXml(e.attributes().get("Key").get()),
-                            e -> valueMapping.ofXml(e.text()));
-                }
-                return elements.toMap(
-                        e -> keyMapping.ofXml(e.attributes().get("Key").get()),
-                        e -> valueMapping.ofXml(resolver, parent, Array.of(e)));
             }
 
             XsdComplex extensionWithKey(XsdComplex complex, XsdTypeRef base) {
@@ -313,25 +250,6 @@ public record ConfigImpl(Function1<Type, Mapper> memoizedMappers) implements Con
             @Override
             public Seq<XsdType> xsdDeclaredTypes(MappingResolver resolver) {
                 return Array.of(xsdType(resolver));
-            }
-
-            @Override
-            public Object ofXml(String text) {
-                throw new IllegalArgumentException("Should never be called for Interface Mapping");
-            }
-
-            @Override
-            public Object ofXml(MappingResolver resolver, XmlElement parent, Seq<XmlElement> elements) {
-                if (elements.isEmpty()) {
-                    return null;
-                }
-                XmlElement self = elements.head();
-                Class<?> clazz = typesByName.get(self.name()).get();
-                MappingType mapping = resolver.resolveType(clazz);
-                if (mapping.isSimple()) {
-                    return mapping.ofXml(self.text());
-                }
-                return mapping.ofXml(resolver, parent, elements);
             }
         };
     }
