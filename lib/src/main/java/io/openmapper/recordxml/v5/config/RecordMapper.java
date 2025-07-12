@@ -15,11 +15,18 @@ import io.openmapper.recordxml.xml.XmlPlainElement;
 import io.openmapper.recordxml.xml.XmlUnit;
 import io.vavr.collection.Array;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Set;
 import io.vavr.control.Option;
 
 public record RecordMapper(Config config, Constructor<?> constructor,
                            Seq<ComponentInfo> components) implements ComplexMapper {
     record ComponentInfo(String name, Type declaredType, Function<Object, Object> accessor) {
+        ComponentMapper withMappier(Config config) {
+            return new ComponentMapper(name, declaredType, accessor, config.mapperFor(declaredType));
+        }
+    }
+
+    record ComponentMapper(String name, Type declaredType, Function<Object, Object> accessor, Mapper mapper) {
     }
 
     public static RecordMapper of(Config config, Type declaredType) {
@@ -42,37 +49,37 @@ public record RecordMapper(Config config, Constructor<?> constructor,
         if (value == null) {
             return Option.none();
         }
-        Seq<Mapper> mappers = components.map(c -> config.mapperFor(c.declaredType));
-        boolean requiredFieldElement = mappers.count(m -> !(m instanceof SimpleMapper)) > 1;
-        Seq<XmlUnit> units = components.zip(mappers)
-                .flatMap(t -> switch (t._2) {
+        Seq<ComponentMapper> mappers = components.map(c -> c.withMappier(config));
+        boolean requiredFieldElement = requiredFieldElement(mappers);
+        Seq<XmlUnit> units = mappers
+                .flatMap(m -> switch (m.mapper) {
                     case ChoiceMapper choice when requiredFieldElement ->
-                            toChoiceField(choice, t._1.name, t._1.accessor.apply(value));
-                    case ChoiceMapper choice -> toChoice(choice, t._1.accessor.apply(value));
+                            toChoiceField(choice, m.name, m.accessor.apply(value));
+                    case ChoiceMapper choice -> toChoice(choice, m.accessor.apply(value));
                     case EmbeddedMapper embedded when requiredFieldElement ->
-                            toEmbeddedField(embedded, t._1.name, t._1.accessor.apply(value));
-                    case EmbeddedMapper embedded -> toEmbedded(embedded, t._1.accessor.apply(value));
-                    case SequenceMapper sequence -> toSequence(sequence, t._1.name, t._1.accessor.apply(value));
-                    case ComplexMapper complex -> toComplex(complex, t._1.name, t._1.accessor.apply(value));
-                    case SimpleMapper simple -> toSimple(simple, t._1.name, t._1.accessor.apply(value));
+                            toEmbeddedField(embedded, m.name, m.accessor.apply(value));
+                    case EmbeddedMapper embedded -> toEmbedded(embedded, m.accessor.apply(value));
+                    case SequenceMapper sequence -> toSequence(sequence, m.name, m.accessor.apply(value));
+                    case ComplexMapper complex -> toComplex(complex, m.name, m.accessor.apply(value));
+                    case SimpleMapper simple -> toSimple(simple, m.name, m.accessor.apply(value));
                 });
         return Option.of(XmlPlainElement.ofUnits(units));
     }
 
     @Override
     public Object ofXml(XmlElement xml) {
-        Seq<Mapper> mappers = components.map(c -> config.mapperFor(c.declaredType));
-        boolean requiredFieldElement = mappers.count(m -> !(m instanceof SimpleMapper)) > 1;
+        Seq<ComponentMapper> mappers = components.map(c -> c.withMappier(config));
+        boolean requiredFieldElement = requiredFieldElement(mappers);
 
-        Seq<Object> values = components.zip(mappers)
-                .map(t -> switch (t._2) {
-                    case ChoiceMapper choice when requiredFieldElement -> ofChoiceField(choice, t._1.name, xml);
+        Seq<Object> values = mappers
+                .map(m -> switch (m.mapper) {
+                    case ChoiceMapper choice when requiredFieldElement -> ofChoiceField(choice, m.name, xml);
                     case ChoiceMapper choice -> ofChoice(choice, xml);
-                    case EmbeddedMapper embedded when requiredFieldElement -> ofEmbeddedField(embedded, t._1.name, xml);
+                    case EmbeddedMapper embedded when requiredFieldElement -> ofEmbeddedField(embedded, m.name, xml);
                     case EmbeddedMapper embedded -> ofEmbedded(embedded, xml);
-                    case SequenceMapper sequence -> ofSequence(sequence, t._1.name, xml);
-                    case ComplexMapper complex -> ofComplex(complex, t._1.name, xml);
-                    case SimpleMapper simple -> ofSimple(simple, t._1.name, xml);
+                    case SequenceMapper sequence -> ofSequence(sequence, m.name, xml);
+                    case ComplexMapper complex -> ofComplex(complex, m.name, xml);
+                    case SimpleMapper simple -> ofSimple(simple, m.name, xml);
                 });
         return SoftenEx.call(() -> constructor.newInstance(values.toJavaArray()));
     }
@@ -90,8 +97,9 @@ public record RecordMapper(Config config, Constructor<?> constructor,
     }
 
     Object ofChoice(ChoiceMapper mapper, XmlElement xml) {
+        Set<String> names = mapper.names();
         return xml.elements()
-                .headOption()
+                .find(e -> names.contains(e.name()))
                 .map(mapper::ofXml)
                 .getOrNull();
     }
@@ -104,7 +112,9 @@ public record RecordMapper(Config config, Constructor<?> constructor,
     }
 
     Object ofEmbedded(EmbeddedMapper mapper, XmlElement xml) {
-        return mapper.ofXml(xml);
+        Set<String> names = mapper.names();
+        Seq<XmlElement> children = xml.elements().filter(e -> names.contains(e.name()));
+        return mapper.ofXml(xml.withChildren(children));
     }
 
     Object ofSequence(SequenceMapper mapper, String name, XmlElement xml) {
@@ -122,6 +132,17 @@ public record RecordMapper(Config config, Constructor<?> constructor,
 
     Object ofSimple(SimpleMapper mapper, String name, XmlElement xml) {
         return xml.attributes().get(name).map(mapper::ofXml).getOrNull();
+    }
+
+    boolean requiredFieldElement(Seq<ComponentMapper> mappers) {
+        Seq<String> names = mappers
+                .flatMap(m -> switch (m.mapper) {
+                    case SimpleMapper ignore -> Option.none();
+                    case ChoiceMapper choice -> choice.names();
+                    case EmbeddedMapper embedded -> embedded.names();
+                    default -> Option.of(m.name);
+                });
+        return names.distinct().size() != names.size();
     }
 
     Option<XmlElement> toChoiceField(ChoiceMapper mapper, String name, Object value) {

@@ -10,6 +10,7 @@ import io.openmapper.recordxml.xml.XmlText;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Set;
 import io.vavr.control.Option;
 
 public interface MapMapper {
@@ -72,6 +73,11 @@ record ComplexMapMapper(SimpleMapper key, ComplexMapper entry) implements Sequen
 }
 
 record ChoiceMapMapper(SimpleMapper key, ChoiceMapper entry) implements EmbeddedMapper {
+
+    @Override
+    public Set<String> names() {
+        return entry.names();
+    }
 
     @Override
     public Option<XmlPlainElement> toXml(Object value) {

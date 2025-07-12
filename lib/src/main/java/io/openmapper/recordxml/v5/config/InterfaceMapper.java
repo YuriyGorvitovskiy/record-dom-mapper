@@ -7,6 +7,7 @@ import io.openmapper.recordxml.v5.*;
 import io.openmapper.recordxml.xml.XmlElement;
 import io.vavr.collection.Map;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Set;
 import io.vavr.control.Option;
 
 public record InterfaceMapper(Map<Class<?>, ImplementationInfo> infoByType,
@@ -28,6 +29,11 @@ public record InterfaceMapper(Map<Class<?>, ImplementationInfo> infoByType,
         return new InterfaceMapper(
                 infos.toMap(ImplementationInfo::clazz, i -> i),
                 infos.toMap(ImplementationInfo::name, i -> i));
+    }
+
+    @Override
+    public Set<String> names() {
+        return infoByName.keySet();
     }
 
     @Override
