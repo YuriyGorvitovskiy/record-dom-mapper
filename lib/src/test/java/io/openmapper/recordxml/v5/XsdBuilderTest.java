@@ -1,9 +1,13 @@
 package io.openmapper.recordxml.v5;
 
+import io.openmapper.recordxml.XmlUtils;
+import io.openmapper.recordxml.util.SoftenEx;
+import io.openmapper.recordxml.util.Strings;
 import io.openmapper.recordxml.v5.config.ConfigImpl;
-import io.openmapper.recordxml.xsd.*;
-import io.openmapper.recordxml.xsd.XsdSimple.Predefined;
+import io.openmapper.recordxml.v5.xsd.schema;
+import io.openmapper.recordxml.xml.XmlElement;
 import org.junit.jupiter.api.Test;
+import org.w3c.dom.Document;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,21 +19,22 @@ public class XsdBuilderTest {
         XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
-        XsdSchema result = subject.build("Root", Simple.class);
+        schema result = subject.build("Test", Simple.class);
 
         // Verify
-        XsdTypeRef simpleRef = XsdTypeRef.of("Simple");
-        XsdTypeRef mapRef = XsdTypeRef.of("string_MappedBy_string");
+        String expected = Strings.resource(XsdBuilderTest.class, "Simple.xsd");
+        String actual = toXsd(result);
+        assertEquals(expected, actual);
+    }
 
-        assertEquals(
-                XsdSchema.empty("Root", simpleRef)
-                        .add(XsdComplex.of(simpleRef)
-                                .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .addElements(XsdElement.of("map", mapRef)))
-                        .add(XsdComplex.of(mapRef)
-                                .extensionOf(Predefined.STRING.ref())
-                                .addAttributes(XsdAttribute.of("Key", Predefined.STRING.ref()))),
-                result);
+    public static String toXsd(schema schema) {
+        XmlElement root = new XmlWriter(ConfigImpl.DEFAULT)
+                .toXml("xs:schema", schema);
+
+        Document doc = SoftenEx.call(() -> XmlUtils.builder().newDocument());
+        doc.appendChild(root.toDOM(doc));
+
+        return SoftenEx.call(() -> XmlUtils.toXml(doc));
     }
 
     @Test
@@ -38,17 +43,12 @@ public class XsdBuilderTest {
         XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
-        XsdSchema result = subject.build("Root", Recursive.class);
+        schema result = subject.build("Test", Recursive.class);
 
         // Verify
-        XsdTypeRef simpleRef = XsdTypeRef.of("Recursive");
-
-        assertEquals(
-                XsdSchema.empty("Root", simpleRef)
-                        .add(XsdComplex.of(simpleRef)
-                                .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .addElements(XsdElement.of("recursive", simpleRef))),
-                result);
+        String expected = Strings.resource(XsdBuilderTest.class, "Recursive.xsd");
+        String actual = toXsd(result);
+        assertEquals(expected, actual);
     }
 
     @Test
@@ -57,21 +57,12 @@ public class XsdBuilderTest {
         XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
-        XsdSchema result = subject.build("Root", RecursiveMap.class);
+        schema result = subject.build("Test", RecursiveMap.class);
 
         // Verify
-        XsdTypeRef simpleRef = XsdTypeRef.of("RecursiveMap");
-        XsdTypeRef simpleMapRef = XsdTypeRef.of("RecursiveMap_MappedBy_string");
-
-        assertEquals(
-                XsdSchema.empty("Root", simpleRef)
-                        .add(XsdComplex.of(simpleRef)
-                                .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .addElements(XsdElement.of("recursive", simpleMapRef)))
-                        .add(XsdComplex.of(simpleMapRef)
-                                .extensionOf(simpleRef)
-                                .addAttributes(XsdAttribute.of("Key", Predefined.STRING.ref()))),
-                result);
+        String expected = Strings.resource(XsdBuilderTest.class, "RecursiveMap.xsd");
+        String actual = toXsd(result);
+        assertEquals(expected, actual);
     }
 
     @Test
@@ -80,57 +71,11 @@ public class XsdBuilderTest {
         XsdBuilder subject = new XsdBuilder(ConfigImpl.DEFAULT);
 
         // Execute
-        XsdSchema result = subject.build("Root", Base.class);
+        schema result = subject.build("Test", DerivedC.class);
 
         // Verify
-        XsdTypeRef baseRef = XsdTypeRef.of("Base");
-        XsdTypeRef derivedARef = XsdTypeRef.of("DerivedA");
-        XsdTypeRef derivedBRef = XsdTypeRef.of("DerivedB");
-        XsdTypeRef derivedCRef = XsdTypeRef.of("DerivedC");
-        XsdTypeRef baseMapRef = XsdTypeRef.of("Base_MappedBy_string");
-        XsdTypeRef derivedAMapRef = XsdTypeRef.of("DerivedA_MappedBy_string");
-        XsdTypeRef derivedBMapRef = XsdTypeRef.of("DerivedB_MappedBy_string");
-        XsdTypeRef derivedCMapRef = XsdTypeRef.of("DerivedC_MappedBy_string");
-
-
-        assertEquals(
-                XsdSchema.empty("Root", baseRef)
-                        .add(XsdComplex.of(baseRef)
-                                .addElements(
-                                        XsdElement.of("DerivedA", derivedARef),
-                                        XsdElement.of("DerivedB", derivedBRef),
-                                        XsdElement.of("DerivedC", derivedCRef)))
-                        .add(XsdComplex.of(derivedARef)
-                                .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .addElements(
-                                        XsdElement.of("DerivedA", derivedARef),
-                                        XsdElement.of("DerivedB", derivedBRef),
-                                        XsdElement.of("DerivedC", derivedCRef)))
-                        .add(XsdComplex.of(derivedBRef)
-                                .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .addElements(
-                                        XsdElement.of("DerivedA", derivedAMapRef),
-                                        XsdElement.of("DerivedB", derivedBMapRef),
-                                        XsdElement.of("DerivedC", derivedCMapRef)))
-                        .add(XsdComplex.of(derivedCRef)
-                                .addAttributes(XsdAttribute.of("name", Predefined.STRING.ref()))
-                                .addElements(
-                                        XsdElement.of("recursive", baseRef),
-                                        XsdElement.of("recursiveMap", baseMapRef)))
-                        .add(XsdComplex.of(baseMapRef)
-                                .addElements(
-                                        XsdElement.of("DerivedA", derivedAMapRef),
-                                        XsdElement.of("DerivedB", derivedBMapRef),
-                                        XsdElement.of("DerivedC", derivedCMapRef)))
-                        .add(XsdComplex.of(derivedAMapRef)
-                                .extensionOf(derivedARef)
-                                .addAttributes(XsdAttribute.of("Key", Predefined.STRING.ref())))
-                        .add(XsdComplex.of(derivedBMapRef)
-                                .extensionOf(derivedBRef)
-                                .addAttributes(XsdAttribute.of("Key", Predefined.STRING.ref())))
-                        .add(XsdComplex.of(derivedCMapRef)
-                                .extensionOf(derivedCRef)
-                                .addAttributes(XsdAttribute.of("Key", Predefined.STRING.ref()))),
-                result);
+        String expected = Strings.resource(XsdBuilderTest.class, "Polymorphic.xsd");
+        String actual = toXsd(result);
+        assertEquals(expected, actual);
     }
 }

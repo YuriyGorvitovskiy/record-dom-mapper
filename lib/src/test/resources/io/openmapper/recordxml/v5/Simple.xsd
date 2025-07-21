@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="Test" type="TypeOf_Simple"/>
+    <xs:complexType name="EntryOf_string_By_string">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="Key" type="xs:string"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+    <xs:complexType name="TypeOf_Simple">
+        <xs:sequence>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="map" type="EntryOf_string_By_string"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+</xs:schema>

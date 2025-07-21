@@ -33,6 +33,9 @@ public record ConfigImpl(Function1<Type, Mapper> memoizedMappers) implements Con
         if (rawClass == String.class) {
             return new StringMapper();
         }
+        if (Seq.class.isAssignableFrom(rawClass)) {
+            return SeqMapper.of(this, declaredType);
+        }
         if (Map.class.isAssignableFrom(rawClass)) {
             return MapMapper.of(this, declaredType);
         }

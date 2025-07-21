@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Test xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="test1" xsi:noNamespaceSchemaLocation="./RecursiveMap.xsd">
+    <recursive Key="one" name="test2-1">
+        <recursive Key="three" name="test3"/>
+    </recursive>
+    <recursive Key="two" name="test2-2"/>
+</Test>

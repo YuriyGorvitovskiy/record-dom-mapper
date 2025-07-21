@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Test xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="1" xsi:noNamespaceSchemaLocation="./Polymorphic.xsd">
+    <recursive>
+        <DerivedA name="S1">
+            <DerivedB name="S1-1"/>
+        </DerivedA>
+    </recursive>
+    <recursiveMap>
+        <DerivedB Key="one" name="P1">
+            <DerivedA Key="one" name="P1-1"/>
+            <DerivedB Key="two" name="P1-2">
+                <DerivedA Key="one" name="P1-2-1"/>
+                <DerivedB Key="two" name="P1-2-2"/>
+                <DerivedC Key="three"/>
+            </DerivedB>
+            <DerivedC Key="three" name="P1-3">
+                <recursive>
+                    <DerivedB name="P1-3-S1"/>
+                </recursive>
+                <recursiveMap>
+                    <DerivedA Key="one" name="P1-3-P1"/>
+                </recursiveMap>
+            </DerivedC>
+        </DerivedB>
+        <DerivedC Key="two" name="P2"/>
+        <DerivedA Key="three" name="P3">
+            <DerivedC name="P3-1"/>
+        </DerivedA>
+    </recursiveMap>
+</Test>

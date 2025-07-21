@@ -11,10 +11,11 @@ public record XmlWriter(Config config) {
         }
 
         return switch (config.mapperFor(value.getClass())) {
-            case ChoiceMapper choice -> choice.toXml(value).map(root::withChildren).getOrElse(root);
             case ComplexMapper complex -> complex.toXml(value).map(p -> p.name(rootName)).getOrElse(root);
             case EmbeddedMapper embedded -> embedded.toXml(value).map(p -> p.name(rootName)).getOrElse(root);
             case SimpleMapper simple -> root.withChildren(XmlText.of(simple.toXml(value)));
+            case ChoiceMapper ignored ->
+                    throw new UnsupportedOperationException("Choice is not supported for root element");
             case SequenceMapper ignored ->
                     throw new UnsupportedOperationException("Sequence is not supported for root element");
         };

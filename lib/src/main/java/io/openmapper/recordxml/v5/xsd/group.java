@@ -1,4 +1,4 @@
 package io.openmapper.recordxml.v5.xsd;
 
-public sealed interface group permits element, choice, sequence {
+public sealed interface group extends particle permits element, choice, sequence {
 }

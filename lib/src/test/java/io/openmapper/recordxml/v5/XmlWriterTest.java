@@ -1,6 +1,7 @@
 package io.openmapper.recordxml.v5;
 
 import io.openmapper.recordxml.XmlUtils;
+import io.openmapper.recordxml.util.Strings;
 import io.openmapper.recordxml.v5.config.ConfigImpl;
 import io.openmapper.recordxml.xml.XmlElement;
 import io.vavr.collection.HashMap;
@@ -29,13 +30,8 @@ public class XmlWriterTest {
         doc.appendChild(result.toDOM(doc));
 
         assertEquals(
-                """
-                        <Test name="test1">
-                            <map Key="one">first</map>
-                            <map Key="two">second</map>
-                        </Test>
-                        """,
-                XmlUtils.toXml(doc));
+                Strings.resource(XmlWriterTest.class, "Simple.xml"),
+                XmlUtils.toXml(doc, "./Simple.xsd"));
     }
 
     @Test
@@ -55,14 +51,8 @@ public class XmlWriterTest {
         doc.appendChild(result.toDOM(doc));
 
         assertEquals(
-                """
-                        <Test name="test1">
-                            <recursive name="test2">
-                                <recursive name="test3"/>
-                            </recursive>
-                        </Test>
-                        """,
-                XmlUtils.toXml(doc));
+                Strings.resource(XmlWriterTest.class, "Recursive.xml"),
+                XmlUtils.toXml(doc, "./Recursive.xsd"));
     }
 
     @Test
@@ -83,15 +73,8 @@ public class XmlWriterTest {
         doc.appendChild(result.toDOM(doc));
 
         assertEquals(
-                """
-                        <Test name="test1">
-                            <recursive Key="one" name="test2-1">
-                                <recursive Key="three" name="test3"/>
-                            </recursive>
-                            <recursive Key="two" name="test2-2"/>
-                        </Test>
-                        """,
-                XmlUtils.toXml(doc));
+                Strings.resource(XmlWriterTest.class, "RecursiveMap.xml"),
+                XmlUtils.toXml(doc, "./RecursiveMap.xsd"));
     }
 
     @Test
@@ -127,38 +110,8 @@ public class XmlWriterTest {
         doc.appendChild(result.toDOM(doc));
 
         assertEquals(
-                """
-                        <Test name="1">
-                            <recursive>
-                                <DerivedA name="S1">
-                                    <DerivedB name="S1-1"/>
-                                </DerivedA>
-                            </recursive>
-                            <recursiveMap>
-                                <DerivedB Key="one" name="P1">
-                                    <DerivedA Key="one" name="P1-1"/>
-                                    <DerivedB Key="two" name="P1-2">
-                                        <DerivedA Key="one" name="P1-2-1"/>
-                                        <DerivedB Key="two" name="P1-2-2"/>
-                                        <DerivedC Key="three"/>
-                                    </DerivedB>
-                                    <DerivedC Key="three" name="P1-3">
-                                        <recursive>
-                                            <DerivedB name="P1-3-S1"/>
-                                        </recursive>
-                                        <recursiveMap>
-                                            <DerivedA Key="one" name="P1-3-P1"/>
-                                        </recursiveMap>
-                                    </DerivedC>
-                                </DerivedB>
-                                <DerivedC Key="two" name="P2"/>
-                                <DerivedA Key="three" name="P3">
-                                    <DerivedC name="P3-1"/>
-                                </DerivedA>
-                            </recursiveMap>
-                        </Test>
-                        """,
-                XmlUtils.toXml(doc));
+                Strings.resource(XmlWriterTest.class, "Polymorphic.xml"),
+                XmlUtils.toXml(doc, "./Polymorphic.xsd"));
     }
 }
 

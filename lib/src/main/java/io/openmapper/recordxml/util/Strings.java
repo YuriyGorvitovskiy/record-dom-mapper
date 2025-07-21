@@ -1,6 +1,7 @@
 package io.openmapper.recordxml.util;
 
-import java.util.function.Supplier;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public interface Strings {
 
@@ -10,11 +11,17 @@ public interface Strings {
         return str == null || str.isEmpty();
     }
 
-    static String whenEmpty(String value, Supplier<String> onEmpty) {
-        return isEmpty(value) ? onEmpty.get() : value;
-    }
-
     static boolean notEmpty(String str) {
         return str != null && !str.isEmpty();
+    }
+
+    static String resource(Class<?> clazz, String resource) {
+        try (InputStream is = clazz.getResourceAsStream(resource)) {
+            return null == is
+                    ? Strings.EMPTY
+                    : new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -4,13 +4,17 @@ import java.lang.reflect.Type;
 
 import io.openmapper.recordxml.util.Java;
 import io.openmapper.recordxml.v5.*;
+import io.openmapper.recordxml.v5.xsd.Occur;
+import io.openmapper.recordxml.v5.xsd.choice;
+import io.openmapper.recordxml.v5.xsd.group;
 import io.openmapper.recordxml.xml.XmlElement;
 import io.vavr.collection.Map;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Set;
 import io.vavr.control.Option;
 
-public record InterfaceMapper(Map<Class<?>, ImplementationInfo> infoByType,
+public record InterfaceMapper(String name,
+                              Map<Class<?>, ImplementationInfo> infoByType,
                               Map<String, ImplementationInfo> infoByName) implements ChoiceMapper {
 
     record ImplementationInfo(Class<?> clazz, String name, Mapper mapper) {
@@ -23,12 +27,21 @@ public record InterfaceMapper(Map<Class<?>, ImplementationInfo> infoByType,
         Seq<ImplementationInfo> infos = permitted.map(
                 c -> new ImplementationInfo(
                         c,
-                        c.getSimpleName(),
+                        extractName(c),
                         config.mapperFor(c)));
 
         return new InterfaceMapper(
+                rawClass.getSimpleName(),
                 infos.toMap(ImplementationInfo::clazz, i -> i),
                 infos.toMap(ImplementationInfo::name, i -> i));
+    }
+
+    static String extractName(Class<?> clazz) {
+        XmlNameSpace annotation = clazz.getAnnotation(XmlNameSpace.class);
+        if (annotation != null) {
+            return annotation.value() + ":" + clazz.getSimpleName();
+        }
+        return clazz.getSimpleName();
     }
 
     @Override
@@ -67,4 +80,23 @@ public record InterfaceMapper(Map<Class<?>, ImplementationInfo> infoByType,
                     throw new RuntimeException("Sequence Mapper does not supported for interface");
         };
     }
+
+    @Override
+    public XsdEntry<choice> xsd() {
+        Seq<XsdEntry<group>> choices = Seq.narrow(infoByName.values().map(this::xsd));
+        return XsdEntry.choice(choices, Occur.ZERO, Occur.DEFAULT);
+    }
+
+    XsdEntry<group> xsd(ImplementationInfo info) {
+        return switch (info.mapper) {
+            case SimpleMapper s -> XsdEntry.elementSimple(info.name, s.xsd());
+            case ComplexMapper c -> XsdEntry.elementOfType(info.name, c.xsd());
+            case EmbeddedMapper c -> XsdEntry.elementOfComplexType(info.name, c.xsd());
+            case ChoiceMapper ignored -> throw new RuntimeException("Choice Mapper does not supported for interface");
+            case SequenceMapper ignored ->
+                    throw new RuntimeException("Sequence Mapper does not supported for interface");
+        };
+    }
+
+
 }

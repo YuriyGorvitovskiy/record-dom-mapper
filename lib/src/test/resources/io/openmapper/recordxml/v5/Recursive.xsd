@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="Test" type="TypeOf_Recursive"/>
+    <xs:complexType name="TypeOf_Recursive">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="recursive" type="TypeOf_Recursive"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+</xs:schema>
